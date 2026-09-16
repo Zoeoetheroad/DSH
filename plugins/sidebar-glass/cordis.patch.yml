@@ -1,0 +1,4 @@
+# dsh-local-sidebar-glass: inserts its own web client row into the roster.
+- insert:
+    - id: dsh-local-sidebar-glass
+      name: 'dsh-local-sidebar-glass'

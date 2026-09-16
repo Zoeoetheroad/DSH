@@ -1,0 +1,25 @@
+{
+  "name": "dsh-local-sidebar-glass",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Personal web-profile tweaks: frosted-glass left sidebar (matching the background plugin glass recipe) and an always-visible workspace row with a bold, centred title.",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": []
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1"
+  }
+}
