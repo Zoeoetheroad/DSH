@@ -1,41 +1,55 @@
-# dsh-plugins
+# DSHplugin
 
-我自己的 DSH 插件，一个目录一个插件。
+我自己的 DSH 插件 / 工具 / 脚本。**一个目录一个东西**，互相独立，各装各的。
 
-## 装其中一个
-
-```sh
-dsh plugin --profile web add "git+<这个仓库的地址>#path:plugins/<插件目录名>"
-```
-
-例：
+## 给同事：一条命令全装
 
 ```sh
-dsh plugin --profile web add "git+git@github.com:你的账号/dsh-plugins.git#path:plugins/mcp-manager"
+git clone git@github.com:Zoeoetheroad/DSHplugin.git ~/dsh-plugins && bash ~/dsh-plugins/安装全部.sh
 ```
 
-装完**重启 DSH**（`dsh web`）。
+前提：这台机器**有权限访问这个仓库**（私有仓库需要配好 GitHub SSH key）。
 
-## 全装（推荐给同事）
+装完**必须重启 DSH**：`dsh web`
+
+重启后：
+- **设置** 里会多出 **MCP** 页
+- 想要侧边栏毛玻璃：**设置 → 通用设置 → 自定义背景** 传一张壁纸
+  （**壁纸关着侧边栏就不是毛玻璃**，这是设计如此）
+
+第一个参数可以指定 profile，默认 `web`：`bash 安装全部.sh tui`
+
+## 只装其中一个
 
 ```sh
-git clone <这个仓库的地址> ~/dsh-plugins
-bash ~/dsh-plugins/安装全部.sh
+dsh plugin --profile web add "git+ssh://git@github.com/Zoeoetheroad/DSHplugin.git#path:plugins/mcp-manager"
 ```
 
-## 插件列表
+`#path:plugins/<目录名>` 指定装哪个 —— 所以**一个仓库能放很多个插件**，各装各的。
 
-| 目录 | 作用 | 依赖 |
+## 里面有什么
+
+| 路径 | 作用 | 依赖 |
 |---|---|---|
 | `plugins/mcp-manager` | 设置里的 MCP 管理页：增/删 MCP 服务器 | 无（自带 js-yaml） |
-| `plugins/sidebar-glass` | 侧边栏毛玻璃 + 工作区行底色/标题加粗居中 | **需要 `deepseek-harness-background` 并开启壁纸** |
+| `plugins/sidebar-glass` | 侧边栏毛玻璃 + 工作区行底色/标题加粗居中 | **需要 `deepseek-harness-background`，并开启壁纸** |
 
-## 新增一个插件
+## 加新东西（我自己用）
 
 ```sh
-mkdir plugins/新插件名 && cd plugins/新插件名
-# 写 package.json（必须有 dsh.client.platform = "web"）和 lib/client.js
+mkdir -p plugins/新东西/lib
+# 写 package.json（客户端插件必须有 dsh.client.platform = "web"）和 lib/client.js
+git add -A && git commit -m "加个新东西" && git push
 ```
 
-然后 `git add . && git commit -m "加个新插件" && git push`。
-同事重跑 `安装全部.sh` 就有了。
+同事重跑 `安装全部.sh` 就有了。不用再发文件。
+
+## 红线
+
+**任何凭据、密钥、`settings.yaml` 都不要进这个仓库。** 仓库里只放代码。
+
+## 前提
+
+- **DSH ≥ 0.1.2-rc.1**
+- **pnpm 可用**（`dsh plugin` 内部转发给它）
+- 装完**重启** DSH：插件是启动时挂载的，刷新页面不够
