@@ -1,0 +1,1075 @@
+/* ================================================================
+   工作台原型 · 样式
+   颜色全部走变量：默认日间，切到夜间只换下面那一组。
+   将来搬进 DSH 插件时，改这一块就够了。
+   ================================================================ */
+
+/* ---------- 日间（默认） ---------- */
+:root{
+  --bg:        #ffffff;
+  --bg-side:   #f6f7f9;
+  --bg-elev:   #ffffff;
+  --bg-elev2:  #eef1f5;
+  --line:      #e2e5ea;
+  --line-soft: #edeff3;
+  --text:      #1d2129;
+  --strong:    #000000;
+  --dim:       #5b626e;
+  --dim2:      #98a0ac;
+
+  --accent:      #3b6df6;
+  --accent-bg:   #eef3ff;
+  --accent-line: #cfdcff;
+  --accent-glow: rgba(59,109,246,.16);
+
+  --ok:        #12a06a;
+  --ok-bg:     #e8f7f0;
+  --ok-line:   #bfe6d6;
+  --wait:      #c98200;
+  --wait-line: #ecdcb8;
+  --run:       #3b6df6;
+  --new:       #e8590c;
+  --bad:       #d64545;   /* 差额（薄弱），红 */
+  --bad-bg:    #fdeceb;
+  --bad-line:  #f0c9c9;
+  --good:      #12a06a;   /* 优势，绿 */
+
+  --w-side: 244px;
+  --w-rail: 420px;
+  --w-rail-min: 46px;
+  --w-content: 940px;   /* 工具卡 / 对话 / 输入区 共用的内容宽度 */
+  --r: 10px;
+  --shadow: 0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+  --pop-shadow: 0 8px 24px rgba(16,24,40,.14);
+  --font: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ---------- 夜间 ---------- */
+:root[data-theme="dark"]{
+  --bg:        #14161b;
+  --bg-side:   #171a20;
+  --bg-elev:   #1c2028;
+  --bg-elev2:  #232833;
+  --line:      #2b3140;
+  --line-soft: #232836;
+  --text:      #e7e9ef;
+  --strong:    #ffffff;
+  --dim:       #9aa2b4;
+  --dim2:      #6b7385;
+
+  --accent:      #4d7cfe;
+  --accent-bg:   #141d2e;
+  --accent-line: #26364f;
+  --accent-glow: rgba(77,124,254,.15);
+
+  --ok:        #3ecf8e;
+  --ok-bg:     #12241d;
+  --ok-line:   #234a3a;
+  --wait:      #f0b429;
+  --wait-line: #4a3a2e;
+  --run:       #4d7cfe;
+  --new:       #ff7a45;
+  --bad:       #ff7b7b;
+  --bad-bg:    #3a1f1f;
+  --bad-line:  #5a2f2f;
+  --good:      #3ecf8e;
+
+  --shadow: none;
+  --pop-shadow: 0 8px 24px rgba(0,0,0,.55);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font:14px/1.6 var(--font);
+  -webkit-font-smoothing:antialiased;
+}
+a{cursor:pointer}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+select{font:inherit}
+
+/* ---------- 总布局 ---------- */
+.shell{
+  display:grid; height:100vh;
+  grid-template-columns:var(--w-side) minmax(0,1fr) var(--w-rail);
+  transition:grid-template-columns .18s ease;
+}
+.shell.rail-collapsed{grid-template-columns:var(--w-side) minmax(0,1fr) var(--w-rail-min)}
+/* landing 页 / 还没产物的会话：右边这一栏整个不出现 */
+.shell.no-rail{grid-template-columns:var(--w-side) minmax(0,1fr) 0}
+.shell.no-rail .rail{display:none}
+
+/* ---------- 小图标按钮 / 标注开关 ---------- */
+.icon-btn{
+  width:28px;height:28px;border-radius:8px;display:grid;place-items:center;
+  color:var(--dim); font-size:15px; line-height:1; border:1px solid var(--line);
+  background:var(--bg-elev);
+}
+.icon-btn:hover{background:var(--bg-elev2); color:var(--text); border-color:var(--dim2)}
+.tb-btn{
+  background:var(--bg-elev2); border:1px solid var(--line);
+  color:var(--dim); padding:3px 10px; border-radius:999px; font-size:11.5px;
+}
+.tb-btn:hover{color:var(--text)}
+.tb-btn.on{background:var(--new); border-color:var(--new); color:#fff; font-weight:700}
+
+/* ================= 左栏 ================= */
+.sidebar{
+  background:var(--bg-side); border-right:1px solid var(--line);
+  display:flex; flex-direction:column; min-height:0;
+}
+.sb-top{padding:10px 12px 10px}
+.brand{display:flex; gap:8px; align-items:center; margin-bottom:10px}
+.brand .icon-btn{margin-left:6px; flex:0 0 auto}
+.brand #btn-annotate{margin-left:auto; flex:0 0 auto; padding:3px 7px; font-size:11px}
+.brand-logo{
+  width:28px;height:28px;border-radius:9px;flex:0 0 auto;
+  background:var(--bg-elev2); border:1px dashed var(--line);
+  display:grid;place-items:center; color:var(--dim2); font-weight:700;
+}
+.brand-name{font-weight:600; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.brand-sub{font-size:11px; color:var(--dim2)}
+.btn-new{
+  width:100%; padding:7px; border-radius:8px; text-align:center; font-size:13px;
+  background:var(--bg-elev); border:1px solid var(--line); color:var(--dim);
+}
+.btn-new:hover{color:var(--text); border-color:var(--dim2)}
+.btn-new.is-on{
+  background:var(--accent-bg); border-color:var(--accent-line);
+  color:var(--accent); font-weight:600;
+}
+
+.sb-list{flex:1; overflow:auto; padding:4px 8px; min-height:0}
+.proj{margin-bottom:2px}
+.proj-hd{
+  display:flex; align-items:center; gap:7px; padding:6px 8px;
+  border-radius:8px; font-size:12.5px; color:var(--dim); cursor:pointer;
+}
+.proj-hd:hover{background:var(--bg-elev); color:var(--text)}
+.proj-name{overflow:hidden; white-space:nowrap; text-overflow:ellipsis}
+.proj-cnt{margin-left:auto; font-size:11px; color:var(--dim2)}
+.proj-bd{display:none; padding:2px 0 6px 0}
+.proj.is-open .proj-bd{display:block}
+.sess{
+  display:flex; align-items:center; gap:4px; cursor:pointer;
+  padding:6px 5px 6px 26px; border-radius:7px; font-size:13px; color:var(--dim);
+}
+.sess:hover{background:var(--bg-elev); color:var(--text)}
+.sess.is-active{background:var(--bg-elev2); color:var(--text); font-weight:500}
+.sess-name{flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis}
+.sess .st{flex:0 0 auto; margin-right:2px}
+.sess .st.ok{background:var(--ok)}
+
+.sess .st.run{background:var(--run); box-shadow:0 0 0 3px var(--accent-glow)}
+/* 悬停才出现的「⋯」 */
+.sess-more{
+  flex:0 0 auto; width:22px; height:22px; border-radius:6px;
+  display:grid; place-items:center; font-size:14px; line-height:1;
+  color:var(--dim2); opacity:0; transition:opacity .12s;
+}
+.sess:hover .sess-more,.sess.is-active .sess-more{opacity:1}
+.sess-more:hover{background:var(--bg-elev2); color:var(--text)}
+.sess-input{
+  flex:1; min-width:0; font:13px var(--font); color:var(--text);
+  background:var(--bg-elev); border:1px solid var(--accent-line);
+  border-radius:5px; padding:1px 5px; outline:none;
+}
+
+/* 侧栏写给自己的那行小备注 */
+.sb-note{
+  border-top:1px dashed var(--line); margin:0 12px; padding:9px 2px 3px;
+  font-size:10.5px; line-height:1.6; color:var(--dim2);
+}
+
+/* 会话的「⋯」小菜单 */
+.menu{
+  position:fixed; z-index:300; min-width:152px;
+  background:var(--bg-elev); border:1px solid var(--line);
+  border-radius:9px; box-shadow:var(--pop-shadow); padding:4px;
+}
+.menu-i{
+  display:flex; align-items:center; gap:8px; width:100%; text-align:left;
+  padding:6px 9px; border-radius:6px; font-size:12.5px; color:var(--text);
+  white-space:nowrap; cursor:pointer;
+}
+.menu-i:hover{background:var(--bg-elev2)}
+.menu-i.dim{color:var(--dim2); font-size:12px}
+.menu-arrow{margin-left:auto; color:var(--dim2)}
+.menu-sep{height:1px; background:var(--line); margin:4px 2px}
+
+.sb-bottom{border-top:1px solid var(--line); padding:8px}
+.sb-entry{
+  display:flex; align-items:center; gap:9px; padding:7px 9px; border-radius:8px;
+  font-size:13px; color:var(--dim);
+}
+.sb-entry:hover{background:var(--bg-elev); color:var(--text)}
+.ico{font-style:normal; color:var(--dim2); width:14px; text-align:center}
+
+/* ================= 主区 ================= */
+.main{display:flex; flex-direction:column; min-width:0; min-height:0}
+
+.hide{display:none !important}
+.f-label{font-size:11px; color:var(--dim2)}
+.mini-btn{
+  flex:0 0 auto; font-size:11.5px; color:var(--accent); cursor:pointer;
+  border:1px solid var(--accent-line); background:var(--accent-bg);
+  border-radius:7px; padding:3px 9px;
+}
+.mini-btn:hover{border-color:var(--accent)}
+.mini-btn.soft{color:var(--dim); background:var(--bg-elev); border-color:var(--line)}
+.mini-btn.soft:hover{color:var(--text); border-color:var(--dim2)}
+
+.blank{
+  flex:1; min-height:56px; border:1px dashed var(--line); border-radius:8px;
+  display:grid; place-items:center; color:var(--dim2); font-size:12px;
+}
+.panel-bd .blank{min-height:88px}
+
+/* ================================================================
+   A · Landing 装配台
+   从上到下一条线：给谁写 → 写什么 → （工作区）→ 怎么写 → 写成什么 + 发送。
+   整个装配台是一个撑满高度的 flex 列，工作区 flex:1 —— 所以不管切到哪个
+   模式，底座（类型 + 输入框 + 发送）都钉在同一个位置，按钮不会跳。
+   ================================================================ */
+.asm{
+  flex:1; min-height:0; display:flex; flex-direction:column; gap:10px;
+  width:100%; max-width:calc(var(--w-content) + 36px);
+  margin:0 auto; padding:16px 18px 14px;
+}
+
+/* --- 给谁写：横着的一张卡 --- */
+.asm-head{
+  display:flex; align-items:center; gap:6px; flex-wrap:wrap; flex:0 0 auto;
+  border:1px solid var(--line); border-radius:var(--r);
+  background:var(--bg-elev); box-shadow:var(--shadow);
+  padding:9px 12px;
+}
+.ah-t{font-size:15px; color:var(--dim)}
+.ah-d{color:var(--dim2); font-size:13px}
+.ah-hint{margin-left:auto; font-size:10.5px; color:var(--dim2)}
+#btn-new-client{margin-left:10px}
+/* 新建客户：就地变成输入框，回车确定 / Esc 取消（跟会话重命名同一套） */
+.ah-input{
+  width:120px; border:1px solid var(--accent-line); border-radius:8px;
+  background:var(--bg-elev2); color:var(--text);
+  font:600 14px/1 var(--font); padding:5px 8px; outline:none;
+}
+.isel{position:relative; display:inline-flex}
+.isel select{
+  appearance:none; -webkit-appearance:none; cursor:pointer; outline:none;
+  background:var(--bg-elev2); border:1px solid var(--line); border-radius:8px;
+  color:var(--text); font-size:15px; font-weight:600; padding:3px 25px 3px 10px;
+}
+.isel select:hover{border-color:var(--dim2)}
+.isel::after{
+  content:"▾"; position:absolute; right:9px; top:50%; transform:translateY(-50%);
+  font-size:9px; color:var(--dim2); pointer-events:none;
+}
+
+/* --- 三行共用的左侧小标 --- */
+.row-cap{flex:0 0 52px; font-size:11px; color:var(--dim2)}
+.asm-row{display:flex; align-items:center; gap:8px; flex:0 0 auto}
+
+/* --- 主题：二选一 --- */
+.src-tabs{display:flex; gap:6px}
+.src-tab{
+  font-size:12.5px; font-weight:600; line-height:1.3;
+  padding:5px 14px; border-radius:9px;
+  border:1px solid var(--line); background:var(--bg-elev); color:var(--dim);
+}
+.src-tab:hover{border-color:var(--dim2); color:var(--text)}
+.src-tab.is-on{background:var(--accent-bg); border-color:var(--accent-line); color:var(--accent)}
+
+/* --- 工作区：薄弱问句就地选 ---
+   basis 给 0，剩下的空间全归它 —— 这样「怎么写」按自己内容的高度站着，不会被挤扁 */
+.workarea{flex:1 1 0; min-height:120px; display:flex; flex-direction:column}
+/* 「怎么写」展开时跟工作区平分；收起时只占一条标题栏 */
+.refbox.open{flex:1 1 0}
+
+/* 拖杆：工作区和「怎么写」在分同一块空间，拖它改分法 */
+.splitter{
+  flex:0 0 auto; height:8px; margin:-5px 0; cursor:row-resize;
+  display:flex; align-items:center; justify-content:center;
+}
+.splitter::before{
+  content:""; width:46px; height:3px; border-radius:2px;
+  background:var(--line); transition:background .12s;
+}
+.splitter:hover::before, body.wa-dragging .splitter::before{background:var(--accent-line)}
+body.wa-dragging{cursor:row-resize; user-select:none}
+.weak-block{
+  flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden;
+  border:1px solid var(--line); border-radius:var(--r);
+  background:var(--bg-elev); box-shadow:var(--shadow);
+}
+.wa-bar{
+  display:flex; align-items:center; gap:8px; flex:0 0 auto; flex-wrap:wrap;
+  padding:8px 10px; border-bottom:1px solid var(--line); background:var(--bg-side);
+}
+.wa-meta{font-size:11px; color:var(--dim2)}
+.wa-stat{margin-left:auto; font-size:11px; color:var(--dim)}
+.wa-table{flex:1; min-height:0; overflow:auto}
+
+/* --- 怎么写：参考文章（跟上面两种都能叠加） --- */
+.refbox{
+  flex:0 1 auto; min-height:0; display:flex; flex-direction:column;
+  border:1px solid var(--line);
+  border-radius:var(--r); background:var(--bg-elev);
+}
+/* 拖过之后工作区高度被钉死，改由「怎么写」接住剩下的空间（底座照旧贴底） */
+.asm.wa-fixed .refbox{flex:1 1 auto}
+.refbox.on{border-color:var(--accent-line)}
+.ref-hd{display:flex; align-items:center; gap:8px; padding:6px 10px; cursor:pointer; flex:0 0 auto}
+.rh-chev{font-size:10px; color:var(--dim2)}
+.rh-s{margin-left:auto; font-size:11px; color:var(--dim2)}
+.refbox.on .rh-s{color:var(--accent)}
+
+/* 两个标签页：仿写 / 用 skill。切换只切显示，两边的选择都留着 */
+.ref-tabs{display:flex; gap:4px}
+.ref-tab{
+  font-size:12.5px; font-weight:600; color:var(--dim);
+  padding:4px 12px; border-radius:8px; border:1px solid transparent;
+}
+.ref-tab:hover{color:var(--text); background:var(--bg-elev2)}
+.ref-tab.is-on{
+  background:var(--accent-bg); border-color:var(--accent-line); color:var(--accent);
+}
+.ref-tab .n{font-weight:400; opacity:.75; margin-left:3px}
+
+.ref-bd{
+  flex:1 1 auto; min-height:0; overflow-y:auto;
+  padding:0 10px 10px; display:flex; flex-direction:column; gap:8px;
+}
+.ref-pane{display:flex; flex-direction:column; gap:8px}
+/* 用 skill：就是原来底座那排文章类型 */
+.sk-line{display:flex; align-items:flex-start; gap:8px}
+.ref-bd textarea{
+  width:100%; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-elev2); color:var(--text);
+  font:13px/1.6 var(--font); padding:8px 10px; resize:vertical; outline:none;
+}
+.ref-bd textarea:focus{border-color:var(--accent-line)}
+.ref-bd textarea::placeholder{color:var(--dim2)}
+.ref-act{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+.ref-list{display:flex; flex-direction:column; gap:4px; max-height:146px; overflow:auto; flex:0 0 auto}
+
+/* 仿写这一页：只有输入区会长高，下面那排方式钉在最底下 */
+.ref-pane[data-pane="copy"]{flex:1 1 auto; min-height:0}
+.ref-input-box{
+  flex:1 1 auto; min-height:64px; display:flex; flex-direction:column;
+  border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-elev2); overflow:hidden;
+}
+.ref-input-box:focus-within{border-color:var(--accent-line)}
+.ref-bd .ref-input-box textarea{
+  flex:1 1 auto; min-height:0; width:100%; border:none; border-radius:0;
+  background:transparent; resize:none; padding:9px 10px 4px;
+}
+/* 「选文件」跟输入链接是同一层级的东西，贴在输入区里 */
+.rib-bar{
+  flex:0 0 auto; display:flex; align-items:center; gap:6px;
+  padding:5px 7px; border-top:1px dashed var(--line-soft);
+}
+.ref-style{flex:0 0 auto; align-self:flex-start}
+/* 「其他」→ 高亮最下面那个输入区 */
+.cp-box.hl, .free-block.hl{
+  border-color:var(--accent-line);
+  box-shadow:0 0 0 3px var(--accent-glow);
+}
+.ref-i{
+  display:flex; align-items:center; gap:8px; font-size:12px; color:var(--dim);
+  background:var(--bg-elev2); border:1px solid var(--line-soft);
+  border-radius:7px; padding:4px 8px;
+}
+.ri-k{flex:0 0 auto; font-size:11px; color:var(--dim2)}
+.ri-v{
+  flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+  font-family:var(--mono); font-size:11.5px;
+}
+.ri-s{flex:0 0 auto; font-size:10.5px; color:var(--dim2)}
+.ri-x{flex:0 0 auto; color:var(--dim2); padding:0 3px; font-size:13px; line-height:1}
+.ri-x:hover{color:var(--bad)}
+
+/* --- 底座 --- */
+.base{flex:0 0 auto; display:flex; flex-direction:column; gap:8px; min-height:0}
+.more-btn{flex:0 0 auto; font-size:11.5px; color:var(--dim2); padding:2px 7px; border-radius:6px}
+.more-btn:hover{color:var(--text); background:var(--bg-elev2)}
+/* 收起时藏掉冷门类型，但已选中的永远露着 */
+.chips:not(.expanded) .chip2.extra:not(.is-on){display:none}
+
+/* 输入：工作区那块直接就是输入框（#cp-text 搬进 .free-slot）。
+   底座只剩发送一条 —— .base 贴底，所以发送按钮位置照旧不动 */
+.free-block{display:none}
+.free-hint{
+  flex:1; display:grid; place-items:center;
+  font-size:12px; color:var(--dim2);
+  border:1px dashed var(--line); border-radius:var(--r);
+}
+.asm.m-free .weak-block{display:none}
+.asm.m-free .free-block{
+  flex:1; min-height:0; display:flex; flex-direction:column; gap:6px;
+  border:1px solid var(--line); border-radius:var(--r);
+  background:var(--bg-elev); box-shadow:var(--shadow); padding:10px 12px;
+}
+.free-slot{flex:1; min-height:0; display:flex}
+.free-slot textarea{
+  flex:1; width:100%; border:none; background:none; color:var(--text);
+  font:14px/1.7 var(--font); resize:none; outline:none; padding:0;
+}
+.asm.m-free .cp-actions{margin-top:0}
+
+/* --- C 对话区 --- */
+.chat{flex:1; overflow:auto; padding:18px; min-height:0}
+.msg{max-width:var(--w-content); margin:0 auto 16px}
+/* 机器检查这种系统事件，摆一条带横线的提示 */
+.sys-note{
+  display:flex; align-items:center; gap:10px;
+  max-width:var(--w-content); margin:0 auto 16px;
+  font-size:11.5px; color:var(--dim2);
+}
+.sys-note::before,.sys-note::after{content:""; flex:1; height:1px; background:var(--line)}
+.sys-note b{color:var(--bad); font-weight:600}
+.msg.user{display:flex; justify-content:flex-end}
+.msg.user .bubble{
+  background:var(--bg-elev2); border:1px solid var(--line);
+  padding:9px 14px; border-radius:12px 12px 3px 12px; font-size:13.5px;
+}
+.prose{font-size:14px; margin:10px 0}
+.prose b{color:var(--strong); font-weight:600}
+
+.think{
+  border:1px solid var(--line-soft); border-radius:var(--r);
+  background:var(--bg-side); overflow:hidden;
+}
+.think-hd{
+  padding:7px 12px; font-size:12.5px; color:var(--dim); cursor:pointer;
+  display:flex; align-items:center; gap:8px;
+}
+.think-hd:hover{color:var(--text)}
+.think-bd{padding:0 14px 12px 30px; font-size:13px; color:var(--dim); border-top:1px solid var(--line-soft)}
+.think-bd p{margin:10px 0}
+.think.collapsed .think-bd{display:none}
+
+.tools{
+  border:1px solid var(--line); border-radius:var(--r);
+  background:var(--bg-elev); margin:12px 0; overflow:hidden;
+}
+.tools-hd{
+  padding:8px 12px; font-size:12.5px; cursor:pointer;
+  display:flex; align-items:center; gap:8px; color:var(--text);
+}
+.tools-tag{
+  font-size:10.5px; color:var(--ok); border:1px solid var(--ok-line);
+  background:var(--ok-bg); border-radius:999px; padding:0 7px;
+}
+.tools-bd{border-top:1px solid var(--line-soft); padding:4px 0}
+.tools.closed .tools-bd,.tools.closed .tools-note{display:none}
+.tool-row{
+  display:flex; align-items:center; gap:8px;
+  padding:5px 14px; font-size:12.5px; color:var(--dim);
+}
+.tool-row:hover{background:var(--bg-elev2)}
+.t-ico{color:var(--dim2); font-size:10px}
+.t-res{margin-left:auto; font-family:var(--mono); font-size:11.5px; color:var(--dim2)}
+.tools-note{
+  border-top:1px dashed var(--line); padding:6px 14px;
+  font-size:11.5px; color:var(--dim2);
+}
+
+.artifact{
+  display:flex; align-items:center; gap:12px; margin-top:14px;
+  border:1px solid var(--line); border-radius:var(--r);
+  background:var(--bg-elev); padding:10px 12px; box-shadow:var(--shadow);
+}
+.art-ico{width:30px;height:30px;border-radius:8px;background:var(--bg-elev2);display:grid;place-items:center;color:var(--dim)}
+.art-tt{font-size:13px; font-weight:600}
+.art-sub{font-size:11.5px; color:var(--dim2)}
+.art-btn{
+  margin-left:auto; font-size:12px; color:var(--accent);
+  border:1px solid var(--accent-line); background:var(--accent-bg);
+  padding:5px 11px; border-radius:7px;
+}
+.caret{
+  display:inline-block; width:7px; height:15px; background:var(--accent);
+  vertical-align:-2px; margin-left:2px; animation:blink 1s steps(1) infinite;
+}
+@keyframes blink{50%{opacity:0}}
+
+/* --- D 动态输入区 --- */
+.composer{border-top:1px solid var(--line); padding:10px 18px 12px; background:var(--bg)}
+.cp-inner{max-width:var(--w-content); margin:0 auto}
+.cp-box{
+  position:relative;
+  border:1px solid var(--line); border-radius:var(--r);
+  background:var(--bg-elev); padding:8px 10px; box-shadow:var(--shadow);
+}
+/* 右上角的放大按钮 —— 做大了，带字，好点 */
+.cp-zoom-btn{
+  position:absolute; top:6px; right:8px; z-index:2;
+  display:inline-flex; align-items:center; gap:4px;
+  padding:4px 10px; border-radius:8px; cursor:pointer;
+  font-size:12px; color:var(--dim);
+  border:1px solid var(--line); background:var(--bg-elev2);
+}
+.cp-zoom-btn:hover{color:var(--text); border-color:var(--dim2); background:var(--bg-elev)}
+.cp-zoom-btn .cz-ico{font-size:14px; line-height:1}
+.cp-box textarea{padding-right:78px}
+
+/* 放大编辑：不弹窗，输入框自己往上长，把上面盖住 */
+.asm{position:relative}
+.base.cp-zoomed{position:relative; z-index:30}
+.base.cp-zoomed .cp-box{
+  position:absolute; left:0; right:0; bottom:0;
+  box-shadow:0 -10px 30px rgba(16,24,40,.16);
+}
+.base.cp-zoomed .cp-box textarea{font-size:14px; line-height:1.75}
+.cp-box textarea{
+  width:100%; border:none; background:none; color:var(--text);
+  font:14px/1.6 var(--font); resize:none; outline:none;
+}
+.cp-box textarea::placeholder{color:var(--dim2)}
+.cp-actions{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:8px}
+.cp-left{display:flex; align-items:center; gap:8px; min-width:0}
+.icon-btn.sq{
+  width:26px; height:26px; border-radius:8px; font-size:15px; flex:0 0 auto;
+  color:var(--dim); border:1px solid var(--line); background:var(--bg);
+}
+.icon-btn.sq:hover{color:var(--text); border-color:var(--dim2); background:var(--bg-elev2)}
+
+/* 输入框最上面那条「挑篇」：方块＝篇号，颜色＝机器结果，选中的加重描边 */
+.pick-row{
+  display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+  padding:0 0 8px; margin-bottom:8px; border-bottom:1px dashed var(--line-soft);
+}
+.pick-row.hide{display:none}
+.pk-k{flex:0 0 auto; font-size:11px; color:var(--dim2)}
+.pk-chips{display:flex; align-items:center; gap:4px; flex-wrap:wrap; min-width:0}
+.pk-tools{display:flex; align-items:center; gap:6px; margin-left:auto; flex:0 0 auto}
+.pk-chip{
+  min-width:23px; height:23px; padding:0 6px; border-radius:7px; cursor:pointer;
+  display:grid; place-items:center; font-size:11.5px; line-height:1;
+  font-variant-numeric:tabular-nums;
+  border:1px solid var(--line); background:var(--bg); color:var(--dim2);
+}
+.pk-chip:hover{border-color:var(--dim2); color:var(--text)}
+/* 绿＝没查出问题，红＝查出来了；灰＝还没过机器（刚写完的）。已入库的压根不列在这 */
+.pk-chip.good{color:var(--ok)}
+.pk-chip.bad{color:var(--bad)}
+.pk-chip.is-on{font-weight:700; box-shadow:inset 0 0 0 2px currentColor}
+/* 正在右边看的那篇：外面加一圈框就够了，不动颜色 */
+.pk-chip.is-view{box-shadow:0 0 0 1.5px var(--accent)}
+.pk-chip.is-view.is-on{box-shadow:inset 0 0 0 2px currentColor, 0 0 0 1.5px var(--accent)}
+.pk-chip.is-on.good{background:var(--ok-bg); border-color:var(--ok-line)}
+.pk-chip.is-on.bad{background:var(--bad-bg); border-color:var(--bad-line)}
+.pk-chip.is-on:not(.bad):not(.good){color:var(--accent); background:var(--accent-bg); border-color:var(--accent-line)}
+
+/* 上面选完 → 这儿自动长出的小标签 */
+.ctx-chip{
+  display:inline-flex; align-items:center; gap:4px; min-width:0;
+  background:var(--accent-bg); border:1px solid var(--accent-line);
+  color:var(--accent); border-radius:999px; padding:3px 5px 3px 11px;
+  font-size:12px; max-width:100%;
+}
+.ctx-txt{display:inline-flex; align-items:center; min-width:0}
+/* 三段之间一道细线，只是提醒这是拼起来的，不抢眼 */
+.cx-seg{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.cx-sep{flex:0 0 auto; width:1px; height:12px; background:var(--accent-line); margin:0 8px}
+.ctx-x{
+  flex:0 0 auto; color:var(--accent); opacity:.6; font-size:14px; line-height:1;
+  padding:0 4px; border-radius:50%;
+}
+.ctx-x:hover{opacity:1}
+.ghost{font-size:12.5px; color:var(--dim); border:1px solid var(--line); border-radius:7px; padding:4px 10px}
+.ghost:hover{color:var(--text)}
+.send{font-size:12.5px; background:var(--accent); color:#fff; border-radius:7px; padding:5px 14px}
+.send.sm{padding:3px 9px; border-radius:6px}
+.chips{display:flex; flex-wrap:wrap; gap:5px; flex:1; min-width:0}
+.chip2{
+  font-size:11.5px; color:var(--dim); cursor:pointer;
+  border:1px solid var(--line); background:var(--bg-elev);
+  border-radius:999px; padding:2px 9px;
+}
+.chip2:hover{color:var(--text); border-color:var(--dim2)}
+.chip2.is-on{background:var(--accent-bg); border-color:var(--accent-line); color:var(--accent); font-weight:600}
+.seg2{display:flex; gap:3px; background:var(--bg-elev2); padding:3px; border-radius:8px}
+.seg2-b{font-size:12px; padding:3px 10px; border-radius:6px; color:var(--dim); cursor:pointer}
+.seg2-b:hover{color:var(--text)}
+.seg2-b.is-on{background:var(--bg-elev); color:var(--text); font-weight:600; box-shadow:var(--shadow)}
+
+/* ================= 右栏面板 ================= */
+.rail{
+  position:relative;
+  background:var(--bg-side); border-left:1px solid var(--line);
+  display:flex; flex-direction:column; min-height:0; overflow:hidden;
+}
+/* 左边缘那道把子：往左拖，整栏变宽，好读文章 */
+.rail-grip{
+  position:absolute; left:-3px; top:0; bottom:0; width:8px;
+  cursor:col-resize; z-index:20;
+}
+.rail-grip::after{
+  content:""; position:absolute; left:3px; top:50%; transform:translateY(-50%);
+  width:2px; height:40px; border-radius:1px; background:transparent; transition:background .12s;
+}
+.rail-grip:hover::after, body.rail-dragging .rail-grip::after{background:var(--accent-line)}
+body.rail-dragging{cursor:col-resize; user-select:none}
+body.rail-dragging .shell{transition:none}   /* 拖的时候别带过渡，不然一格一格飘 */
+.rail-hd{
+  display:flex; align-items:center; gap:8px;
+  padding:11px 12px; border-bottom:1px solid var(--line); flex:0 0 auto;
+}
+.rail-tt{font-size:12px; color:var(--dim2)}
+.rail-toggle{margin-left:auto; color:var(--dim); font-size:15px; padding:0 4px}
+.rail-toggle:hover{color:var(--text)}
+.shell.rail-collapsed .rail-tt,
+.shell.rail-collapsed .panel-title,
+.shell.rail-collapsed .chev,
+.shell.rail-collapsed .panel-bd,
+.shell.rail-collapsed #btn-annotate{display:none}
+.shell.rail-collapsed .panel-hd{justify-content:center; padding:11px 0}
+.shell.rail-collapsed .rail-toggle{transform:rotate(180deg); margin:0 auto}
+.shell.rail-collapsed .rail-hd{justify-content:center; padding:11px 0}
+
+.panel{display:flex; flex-direction:column; min-height:0; border-bottom:1px solid var(--line)}
+.panel-hd{
+  display:flex; align-items:center; gap:8px; padding:9px 12px;
+  cursor:pointer; font-size:13px; color:var(--dim); flex:0 0 auto;
+}
+.panel-hd:hover{background:var(--bg-elev); color:var(--text)}
+.panel.is-open .panel-hd{color:var(--text); background:var(--bg-elev)}
+.panel-no{font-size:11px; color:var(--dim2)}
+.panel.is-open .panel-no{color:var(--accent)}
+.panel .chev{margin-left:auto}
+.panel-bd{display:none; padding:12px; overflow:auto; flex:1 1 auto; min-height:0}
+.panel.is-open{flex:1 1 auto}
+.panel.is-open .panel-bd{display:block}
+
+.seg{display:flex; gap:3px; background:var(--bg-elev2); border:1px solid var(--line-soft);
+  border-radius:7px; padding:2px; width:fit-content; margin-bottom:10px}
+.seg-i{font-size:11.5px; padding:2px 9px; border-radius:5px; color:var(--dim)}
+.seg-i.is-on{background:var(--bg-elev); color:var(--text)}
+.doc-tt{font-size:14px; margin:0 0 8px}
+.doc-p{font-size:13px; color:var(--dim); margin:0 0 8px}
+
+.mini{font-size:12.5px; border-radius:9px; padding:7px 10px; margin-bottom:7px; max-width:92%}
+.mini.user{background:var(--bg-elev2); margin-left:auto}
+.mini.bot{background:var(--bg-elev); color:var(--dim); border:1px solid var(--line-soft)}
+.mini-input{display:flex; gap:6px; margin-top:10px}
+.mini-input input{
+  flex:1; background:var(--bg-elev); border:1px solid var(--line); color:var(--text);
+  border-radius:7px; padding:6px 10px; font:12.5px var(--font); outline:none;
+}
+
+.task{display:flex; align-items:center; gap:9px; font-size:12.5px; color:var(--dim); padding:6px 0}
+.st{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+.st.run{background:var(--run); box-shadow:0 0 0 3px var(--accent-glow)}
+.st.ok{background:var(--ok)}
+.st.wait{background:var(--wait)}
+.st.idle{background:var(--dim2)}
+.t-time{margin-left:auto; font-size:11px; color:var(--dim2)}
+
+.addr{
+  display:flex; align-items:center; gap:7px; font-size:12px; color:var(--dim);
+  background:var(--bg-elev); border:1px solid var(--line); border-radius:999px;
+  padding:5px 11px; margin-bottom:10px;
+}
+.lock{color:var(--dim2)}
+.browser-ph{
+  border:1px dashed var(--line); border-radius:var(--r); padding:16px 14px;
+  text-align:center; color:var(--dim); font-size:12.5px;
+}
+.browser-ph p{margin:0 0 6px}
+
+.panel-note{
+  margin-top:12px; padding-top:9px; border-top:1px dashed var(--line);
+  font-size:11.5px; color:var(--dim2); line-height:1.5;
+}
+.thumbs{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.thumb{
+  border:1px solid var(--line); border-radius:9px; background:var(--bg-elev);
+  padding:14px 10px; text-align:center; font-size:12px; color:var(--dim);
+}
+.thumb:hover{border-color:var(--dim2); color:var(--text)}
+.thumb.add{border-style:dashed; color:var(--dim2)}
+.muted{color:var(--dim2); font-size:11px}
+
+/* ================= 薄弱问句 · 放大看（浮层） =================
+   表格块是从页面里搬进来的同一个 DOM，不是复制一份 —— 勾选状态不用同步 */
+.mask{
+  position:fixed; inset:0; z-index:400; padding:24px;
+  background:rgba(16,24,40,.42); display:grid; place-items:center;
+}
+.sheet{
+  width:min(1180px,100%); height:88vh; background:var(--bg);
+  border:1px solid var(--line); border-radius:14px; box-shadow:var(--pop-shadow);
+  display:flex; flex-direction:column; overflow:hidden;
+}
+.sheet-hd{padding:15px 20px 12px; border-bottom:1px solid var(--line); flex:0 0 auto}
+.sheet-tt{font-size:15px; font-weight:600}
+.sheet-sub{font-size:11.5px; color:var(--dim2); margin-top:3px}
+/* 搬进浮层后去掉外框，贴边铺满 */
+.sheet-bd > .weak-block{border:none; border-radius:0; box-shadow:none}
+.fsel{position:relative; display:inline-flex}
+.fsel select{
+  appearance:none; -webkit-appearance:none; cursor:pointer; outline:none;
+  background:var(--bg-elev2); border:1px solid var(--line); border-radius:7px;
+  color:var(--text); font-size:12px; padding:4px 22px 4px 9px;
+}
+.fsel::after{
+  content:"▾"; position:absolute; right:8px; top:50%; transform:translateY(-50%);
+  font-size:9px; color:var(--dim2); pointer-events:none;
+}
+.sheet-bd{flex:1; min-height:0; display:flex; flex-direction:column}
+.tbl{width:100%; border-collapse:collapse; font-size:12.5px}
+.tbl th{
+  position:sticky; top:0; z-index:1; text-align:left; font-weight:500;
+  font-size:11px; color:var(--dim2); background:var(--bg-side);
+  padding:8px 14px; border-bottom:1px solid var(--line);
+}
+.tbl td{padding:9px 14px; border-bottom:1px solid var(--line-soft); color:var(--dim)}
+.tbl tbody tr{cursor:pointer}
+/* 按住往下拖 = 连着勾一串，拖的时候别让浏览器选中文字 */
+body.row-dragging{user-select:none; -webkit-user-select:none}
+.tbl tbody tr:hover td{background:var(--bg-side)}
+.tbl tbody tr.on td{background:var(--accent-bg); color:var(--text)}
+.tbl tbody tr.on:hover td{background:var(--accent-bg)}
+.tbl tbody tr.on td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.tbl td.q{color:var(--text)}
+.tbl .c-chk{width:38px}
+.tbl .c-g{width:232px}
+.tbl .c-d{width:190px}
+.tbl input[type=checkbox]{accent-color:var(--accent); margin:0; cursor:pointer}
+.tag{
+  display:inline-block; font-size:11px; padding:1px 7px; margin-right:4px;
+  border-radius:999px; border:1px solid var(--line); color:var(--dim); background:var(--bg-elev2);
+}
+.gap{font-size:12.5px; font-weight:700; font-variant-numeric:tabular-nums}
+.gap.bad{color:var(--bad)}
+.gap.good{color:var(--good)}
+.gap.flat{color:var(--dim2); font-weight:400}
+.sheet-ft{
+  display:flex; align-items:center; gap:10px;
+  padding:12px 20px; border-top:1px solid var(--line); flex:0 0 auto;
+}
+.sheet-ft .cnt{font-size:12.5px; color:var(--dim)}
+.sheet-ft .sp{margin-left:auto}
+
+/* ================= 两个视图：landing / 会话 ================= */
+.view{display:flex; flex-direction:column; flex:1; min-height:0; position:relative}
+
+/* 会话页：顶部悬浮条（左预设 / 右任务进程） */
+#view-session .chat{padding-top:0}
+.task-bar{
+  position:sticky; top:0; z-index:6;
+  max-width:980px; margin:0 auto 16px;
+  background:var(--bg-elev); border:1px solid var(--line);
+  border-radius:12px; box-shadow:var(--pop-shadow); overflow:hidden;
+}
+.tb-hd{
+  display:flex; align-items:center; gap:8px; padding:9px 13px;
+  cursor:pointer; font-size:12.5px;
+}
+.fp-dot{
+  width:7px; height:7px; border-radius:50%; flex:0 0 auto;
+  background:var(--run); box-shadow:0 0 0 3px var(--accent-glow);
+}
+.fp-title{flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-weight:600}
+.fp-toggle{color:var(--dim2); font-size:10px}
+.tb-bd{display:flex; border-top:1px solid var(--line)}
+.tb-col{flex:1; min-width:0; padding:10px 13px 11px}
+.tb-split{width:1px; background:var(--line); flex:0 0 auto}
+.tb-cap{font-size:10.5px; color:var(--dim2); margin-bottom:6px}
+.tb-row{display:flex; gap:8px; font-size:11.5px; padding:2px 0}
+.tb-k{flex:0 0 30px; color:var(--dim2)}
+.tb-v{flex:1; min-width:0; color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.tb-v.dim{color:var(--dim2)}
+.task-bar.collapsed .tb-bd{display:none}
+.fp-sum{font-size:10.5px; color:var(--dim2); margin-bottom:5px}
+.fp-row{display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--dim); padding:3px 0}
+.fp-where{margin-left:auto; font-size:10.5px; color:var(--dim2); flex:0 0 auto}
+
+/* 会话页开了小窗时，对话内容往左让一让，别被压住 */
+
+/* ================= 用 skill：三层 ================= */
+.sk-group{display:flex; flex-direction:column; gap:6px}
+.sk-group + .sk-group{border-top:1px dashed var(--line-soft); padding-top:9px}
+.sk-cap{display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--dim); font-weight:600}
+.sk-hint{font-size:10.5px; color:var(--dim2); font-weight:400}
+/* 公共测试中的标签：名字 · 类型 */
+.chip2 .sk-type{color:var(--dim2); font-weight:400}
+.chip2.is-on .sk-type{color:var(--accent); opacity:.7}
+
+/* ================= 右栏 · 审核 ================= */
+.rev{flex:1; min-height:0; display:flex; flex-direction:column; min-width:0}
+/* 右栏里那两根把手：上面那根调检查条高度，中间那根调目录宽度 */
+.rev-split-h{flex:0 0 auto; height:7px; cursor:row-resize; position:relative}
+.rev-split-v{flex:0 0 auto; width:7px; cursor:col-resize; position:relative}
+.rev-split-h::after,.rev-split-v::after{
+  content:""; position:absolute; background:var(--line); border-radius:2px; transition:background .12s;
+}
+.rev-split-h::after{left:50%; top:2px; transform:translateX(-50%); width:46px; height:3px}
+.rev-split-v::after{top:50%; left:2px; transform:translateY(-50%); width:3px; height:40px}
+.rev-split-h:hover::after,.rev-split-v:hover::after,
+body.rev-h .rev-split-h::after,body.rev-v .rev-split-v::after{background:var(--accent-line)}
+body.rev-h{cursor:row-resize; user-select:none}
+body.rev-v{cursor:col-resize; user-select:none}
+
+/* 一行统计 */
+.rev-bar{
+  flex:0 0 auto; display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+  padding:6px 10px; border-bottom:1px solid var(--line); font-size:11px;
+}
+.rev-count{color:var(--dim2); flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis}
+/* 左目录 + 右正文 */
+.rev-main{flex:1; min-height:0; display:flex; min-width:0}
+.rev-list{
+  flex:0 0 152px; min-width:0; overflow-y:auto;
+  border-right:1px solid var(--line); background:var(--bg-side);
+}
+.rev-item{
+  display:flex; align-items:center; gap:6px; width:100%; text-align:left;
+  padding:6px 8px; font-size:11.5px; color:var(--dim); cursor:pointer;
+  border-bottom:1px solid var(--line-soft);
+}
+.rev-item.picked{background:var(--accent-bg)}
+.rev-item.picked .ri-t{color:var(--text)}
+.rev-item:hover{background:var(--bg-elev2); color:var(--text)}
+.rev-item.is-on{background:var(--bg-elev); color:var(--text); box-shadow:inset 2px 0 0 var(--accent)}
+.rev-item .ri-no{flex:0 0 auto; color:var(--dim2); font-variant-numeric:tabular-nums}
+.rev-item .ri-t{flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis}
+.rev-item .rt-dot{position:static; width:6px; height:6px; flex:0 0 auto; margin:0}
+/* 机器：绿点＝没查出问题，红点＝查出来了，灰点＝还没过机器 */
+.rev-item.m-ok .rt-dot{background:var(--ok)}
+.rev-item.m-bad .rt-dot{background:var(--bad)}
+/* 通过＝入库：绿底、没有勾选框、锁死（只能点开看） */
+.rev-item.done{background:#eaf7f0; color:var(--ok); cursor:pointer}
+.rev-item.done .ri-no{color:var(--ok); font-weight:700}
+.rev-item.done .ri-t{color:var(--ok)}
+.rev-item .ri-lock{flex:0 0 auto; width:13px; text-align:center; color:var(--ok); font-size:11px}
+:root[data-theme="dark"] .rev-item.done{background:#12241d}
+/* 已入库那一段，跟待审之间拉一条线 */
+.rev-sep{
+  display:flex; align-items:center; gap:6px;
+  padding:5px 8px; font-size:10.5px; color:var(--dim2);
+  background:var(--bg-side); border-top:1px solid var(--line); border-bottom:1px solid var(--line-soft);
+}
+.rev-bar .rev-count{flex:0 0 auto}
+.rev-bar .mini-btn{flex:0 0 auto}
+/* 两个小色点按钮：红=只选有问题的，绿=只选没问题的 */
+.sel-dot{
+  flex:0 0 auto; width:30px; height:21px; border-radius:7px; cursor:pointer;
+  display:grid; place-items:center; position:relative;
+  border:1px solid var(--line); background:var(--bg-elev);
+}
+.sel-dot::after{content:""; width:9px; height:9px; border-radius:50%}
+.sel-dot.red{background:var(--bad-bg); border-color:var(--bad-line)}
+.sel-dot.red::after{background:var(--bad)}
+.sel-dot.green{background:var(--ok-bg); border-color:var(--ok-line)}
+.sel-dot.green::after{background:var(--ok)}
+.sel-dot:hover{filter:brightness(.97); box-shadow:0 0 0 3px var(--accent-bg)}
+.sel-dot:disabled{opacity:.35; cursor:not-allowed; box-shadow:none; filter:none}
+.rev-bar .rev-hint{margin-left:auto; font-size:10.5px; color:var(--dim2); white-space:nowrap}
+.rev-body{flex:1; min-width:0; min-height:0; overflow-y:auto; padding:12px}
+.rev-titlerow{display:flex; align-items:center; gap:10px; margin-bottom:9px}
+.rev-title{font-size:13.5px; font-weight:600; flex:1; min-width:0}
+.doc-seg{display:flex; gap:2px; background:var(--bg-elev2); border:1px solid var(--line-soft);
+  border-radius:7px; padding:2px; flex:0 0 auto}
+.doc-seg .seg-i{cursor:pointer; font-size:11px}
+.rev-doc{font-size:12.5px; line-height:1.85; color:var(--dim)}
+.rev-doc p{margin:0 0 9px}
+.rev-doc h5{font-size:12.5px; color:var(--text); margin:12px 0 5px}
+.rev-foot{
+  flex:0 0 auto; display:flex; gap:8px; padding:10px;
+  border-top:1px solid var(--line);
+}
+.rev-foot .mini-btn{flex:1; text-align:center; padding:6px 0}
+.rev-foot .send{flex:1; padding:6px 0}
+.rev-foot{flex-wrap:wrap}
+.rf-hint{flex:1 1 100%; font-size:11px; color:var(--dim2); text-align:center; padding-bottom:2px}
+.rev-foot.off .mini-btn,.rev-foot.off .send{opacity:.45; pointer-events:none}
+
+/* ================= 审核 · 检查条 ================= */
+.chk{
+  flex:0 0 auto; display:flex; flex-direction:column; min-height:0;
+  border-bottom:1px solid var(--line); background:var(--bg-side);
+}
+.chk-hd .mini-btn{padding:2px 8px; font-size:11px; flex:0 0 auto}
+.mini-btn.sm{padding:2px 8px; font-size:11px}
+.chk-hd .chk-txt{flex:0 0 auto; cursor:pointer}
+/* 标题行里那个预设框：紧凑版 */
+.chk-sel{flex:1 1 auto; min-width:0; margin-left:2px}
+.chk-sel select{width:100%; padding:3px 20px 3px 8px; font-size:11.5px; border-radius:7px}
+.chk-sel::after{right:7px; font-size:8px}
+/* 锁着的时候规则区最多这么高，进入编辑才能自由拖 */
+.chk-bd{max-height:250px}
+.chk.editing .chk-bd{max-height:none}
+.chk-hd .mini-btn.hide,.rev-split-h.hide{display:none}
+.chk-bd{flex:1; min-height:0; overflow:auto}
+.chk-rules{max-height:none}
+.chk-hd{
+  display:flex; align-items:center; gap:6px;
+  height:39px; padding:0 12px; font-size:12.5px;   /* 跟会话页顶部那条悬浮窗一样高 */
+  flex:0 0 auto;
+}
+.chk-dot{width:7px; height:7px; border-radius:50%; flex:0 0 auto; background:var(--dim2)}
+.chk-dot.ok{background:var(--ok)}
+.chk-dot.bad{background:var(--bad)}
+.chk-dot.running{background:var(--run); box-shadow:0 0 0 3px var(--accent-glow)}
+.chk-txt{flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; color:var(--dim)}
+.chk-chev{color:var(--dim2); font-size:9px}
+.chk-bd{padding:0 12px 11px; display:flex; flex-direction:column; gap:9px; flex:1; min-height:0; overflow:auto}
+.chk-preset{display:flex; align-items:center; gap:6px}
+.chk-k{font-size:11px; color:var(--dim2); flex:0 0 auto}
+.chk-preset .sel{flex:1; min-width:0}
+.chk-preset .sel select{padding:4px 22px 4px 8px; font-size:11.5px}
+.chk-rules{display:flex; flex-direction:column; gap:8px}
+.chk-g{display:flex; flex-direction:column; gap:3px}
+.chk-gcap{
+  display:flex; align-items:center; gap:6px;
+  font-size:10.5px; color:var(--dim2); cursor:pointer;
+  padding:3px 4px; border-radius:6px;
+}
+.chk-gcap:hover{background:var(--bg-elev2); color:var(--text)}
+.chk-gchev{margin-left:auto; font-size:9px}
+.chk-gbd{display:flex; flex-direction:column; gap:3px}
+.chk-gcap b{color:var(--dim)}
+.chk-item{
+  display:flex; align-items:flex-start; gap:7px;
+  font-size:11.5px; color:var(--dim); padding:2px 4px; border-radius:6px; cursor:pointer;
+}
+.chk-item:hover{background:var(--bg-elev2); color:var(--text)}
+.chk-item input{margin:3px 0 0; accent-color:var(--accent); flex:0 0 auto}
+.chk-item.locked{cursor:default; opacity:.75}
+.chk-item.locked:hover{background:none; color:var(--dim)}
+.chk-preset select:disabled{opacity:.7; cursor:not-allowed}
+.chk-item .ci-tag{
+  margin-left:auto; flex:0 0 auto; font-size:10px;
+  color:var(--dim2); border:1px solid var(--line); border-radius:999px; padding:0 6px;
+}
+.chk-item.off{color:var(--dim2)}
+.chk-foot{display:flex; align-items:center; gap:8px}
+.chk-n{flex:1; font-size:11px; color:var(--dim2)}
+
+/* 检查结果：每篇正文上面挂红条 */
+.rev-issues{
+  display:flex; flex-direction:column; gap:6px; margin-bottom:11px;
+  border:1px solid var(--bad-line); background:var(--bad-bg); border-radius:8px; padding:8px 10px;
+}
+.rev-issues.plain{border-style:dashed; border-color:var(--line); background:var(--bg-side)}
+:root[data-theme="dark"] .rev-issues.plain{border-color:var(--line); background:var(--bg-side)}
+.ri-hd{font-size:11.5px; font-weight:600; color:var(--bad); margin-bottom:2px}
+.ri-hd.ok{color:var(--ok)}
+.rev-issues.settled .ri-hd{color:var(--dim2)}
+.ri{font-size:11.5px; color:var(--dim2); line-height:1.6}
+.ri-row{display:flex; gap:6px; font-size:11.5px; line-height:1.55}
+.ri-x{color:var(--bad); flex:0 0 auto; font-weight:700}
+.ri-main{flex:1; min-width:0}
+.ri-name{color:var(--text); font-weight:600}
+.ri-hit{color:var(--dim); word-break:break-all}
+.ri-w{color:var(--dim2)}
+/* 报错右边那个小动作：忽略此条 / 撤销忽略（只针对这一篇的这一条） */
+.ri-acts{margin-left:auto; flex:0 0 auto; display:flex; align-items:center; gap:6px}
+.ri-ign,.ri-unign{
+  flex:0 0 auto; font-size:10.5px; cursor:pointer; white-space:nowrap;
+  color:var(--dim2); border:1px solid var(--line); background:var(--bg-elev);
+  border-radius:999px; padding:0 7px;
+}
+.ri-ign:hover,.ri-unign:hover{color:var(--text); border-color:var(--dim2)}
+/* 放过的这条：留着、灰着，随时能撤销（不用 opacity，不然撤销按钮也一起淡了） */
+.ri-row.is-ign .ri-name{color:var(--dim2); font-weight:500}
+.ri-row.is-ign .ri-hit,.ri-row.is-ign .ri-w{color:var(--dim2)}
+.ri-x.ign{color:var(--dim2)}
+.ri-row{display:flex; gap:6px; font-size:11.5px; line-height:1.55; align-items:flex-start}
+/* 已修正：给个 git diff 那种两行 */
+.rev-issues.fixed{border-color:var(--ok-line); background:#f3fbf7}
+:root[data-theme="dark"] .rev-issues.fixed{border-color:#234a3a; background:#12241d}
+.ri-x.ok{color:var(--ok)}
+.ri-diff{margin-top:4px; display:flex; flex-direction:column; gap:2px}
+.ri-del,.ri-ins{
+  font-size:11px; font-family:var(--mono); padding:2px 7px; border-radius:5px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.ri-del{background:#fdeceb; color:#b3261e}
+.ri-ins{background:#e7f6ee; color:#12603a}
+:root[data-theme="dark"] .ri-del{background:#3a1f1f; color:#ff9a9a}
+:root[data-theme="dark"] .ri-ins{background:#12241d; color:#7fdcae}
+.ri-ok{margin-top:4px; padding-top:5px; border-top:1px dashed var(--line); font-size:11px; color:var(--ok)}
+
+/* 会话页输入框里那条「待改 N 篇」 */
+.fix-chip{max-width:100%}
+.fix-chip .ctx-txt{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.fx-list{margin-top:6px; padding-top:6px; border-top:1px dashed var(--line); font-size:11.5px; color:var(--dim2)}
+.fx-list b{color:var(--accent)}
+
+/* ================= 会话页：上下文状态条 ================= */
+.ctx-bar{
+  flex:0 0 auto; display:flex; align-items:center; gap:7px;
+  max-width:var(--w-content); width:100%; margin:0 auto;
+  padding:0 18px 9px; font-size:11px; color:var(--dim2);
+}
+/* 会话页的输入框贴近下面那条用量行，别留一大截空 */
+.composer.plain{border-top:none; padding-bottom:6px}
+.asm .base textarea{min-height:120px}   /* 会话页输入区上面那条线不要 */
+.cb-k{color:var(--dim2)}
+.cb-num{color:var(--text); font-weight:600; font-variant-numeric:tabular-nums}
+.cb-num.good{color:var(--ok)}
+.cb-of{color:var(--dim2)}
+.cb-bar{
+  width:82px; height:4px; border-radius:2px; overflow:hidden;
+  background:var(--line); flex:0 0 auto;
+}
+.cb-bar i{display:block; height:100%; background:var(--accent); border-radius:2px}
+.cb-sp{flex:1}
+.cb-sep{width:1px; height:10px; background:var(--line); margin:0 3px}
+
+/* ================= 标注模式：一眼看出改了哪 ================= */
+body.annotate .is-new{
+  outline:1.5px dashed var(--new); outline-offset:2px; border-radius:8px;
+  position:relative;
+}
+body.annotate .is-new::after{
+  content:attr(data-badge);
+  position:absolute; top:-10px; left:-10px; z-index:50;
+  background:var(--new); color:#fff; font-weight:700; font-size:10.5px;
+  padding:1px 7px; border-radius:999px;
+}
+/* 只画框、不打字的那种（比如整个装配台） */
+body.annotate .is-new:not([data-badge])::after{display:none}
+/* 把手上不能变成 relative，不然就跑位了 */
+body.annotate .rail-grip.is-new{position:absolute}
+/* 图例里指到哪一行，页面上对应的块就亮一下 */
+body.annotate .is-new.flash{
+  outline:2px solid var(--new); outline-offset:2px;
+  box-shadow:0 0 0 6px rgba(232,89,12,.16);
+}
+
+/* ================= 标注图例 ================= */
+.al-btn{
+  position:fixed; left:12px; bottom:12px; z-index:410;
+  padding:5px 13px; border-radius:999px; cursor:pointer;
+  font-size:12px; font-weight:600; color:#fff;
+  background:var(--new); border:none;
+  box-shadow:0 4px 14px rgba(16,24,40,.22);
+}
+.al-btn:hover{filter:brightness(1.06)}
+.anno-legend{
+  position:fixed; left:12px; bottom:50px; z-index:400;
+  width:238px; max-height:64vh; overflow:auto;
+  background:var(--bg-elev); border:1px solid var(--line);
+  border-radius:12px; box-shadow:var(--pop-shadow); padding:10px 11px;
+}
+.al-hd{font-size:11.5px; font-weight:600; margin-bottom:8px; color:var(--text)}
+.al-g + .al-g{margin-top:9px; border-top:1px dashed var(--line-soft); padding-top:8px}
+.al-cap{font-size:10.5px; color:var(--dim2); margin-bottom:4px}
+.al-row{
+  display:flex; gap:7px; align-items:baseline;
+  font-size:11.5px; color:var(--dim); padding:3px 5px; border-radius:6px;
+}
+.al-row b{flex:0 0 22px; color:var(--new); font-weight:700}
+.al-row:hover{background:var(--bg-elev2); color:var(--text)}
+
+/* 贴着容器边缘的那些，徽标放里面横着，但骑在顶边上 —— 不然会压住第一行字 */
+body.annotate .is-new[data-badge-in]::after{top:-14px; left:10px}
+body.annotate .is-old{opacity:.42}

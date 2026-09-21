@@ -1,0 +1,12 @@
+# Mac 自动生成的
+.DS_Store
+
+# Claude Code 干活时留下的。里面会有一份整仓库的副本 + 一个 .git，
+# 提交进去会变成坏掉的 submodule，所以整个挡掉。
+.claude/
+
+# 旧原型快照：只在本机留着，不进仓库
+plugins/dsh-workbench/
+
+# 临时文件
+*.log

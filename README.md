@@ -2,6 +2,11 @@
 
 我自己的 DSH 插件 / 工具 / 脚本。**一个目录一个东西**，互相独立，各装各的。
 
+仓库分两个区：
+
+- **`plugins/`** —— 能被 `dsh plugin add` 装的插件。`安装全部.sh` 扫的就是这里（认 `package.json`）
+- **`workbench/`** —— 不是插件的（云上生文 Agent 的工作台），装了也没用，别往 `plugins/` 里放
+
 ## 给同事：一条命令全装
 
 ```sh
@@ -33,6 +38,7 @@ dsh plugin --profile web add "git+ssh://git@github.com/Zoeoetheroad/DSHplugin.gi
 |---|---|---|
 | `plugins/mcp-manager` | 设置里的 MCP 管理页：增/删 MCP 服务器 | 无（自带 js-yaml） |
 | `plugins/sidebar-glass` | 侧边栏毛玻璃 + 工作区行底色/标题加粗居中 | **需要 `deepseek-harness-background`，并开启壁纸** |
+| `workbench/` | 云上生文 Agent 的工作台（**交互原型，不是插件**），入口看 `workbench/README.md` | 无 |
 
 ## 加新东西（我自己用）
 

@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>工作台原型 · 云上生文 Agent</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="shell" id="shell">
+
+  <!-- ============ 左栏 · DSH 现有（示意） ============ -->
+  <aside class="sidebar is-old">
+    <div class="sb-top">
+      <div class="brand is-new"  data-badge="S1" data-badge-in>
+        <div class="brand-logo">?</div>
+        <div class="brand-txt">
+          <div class="brand-name">云上生文 Agent</div>
+          <div class="brand-sub">个人工作区</div>
+        </div>
+        <button class="tb-btn" id="btn-annotate" title="标注新增">标注</button>
+        <button class="icon-btn" id="btn-theme" title="切到夜间">☀</button>
+      </div>
+      <button class="btn-new is-new"  id="btn-new" data-badge="S2">＋ 新建任务</button>
+    </div>
+
+    <!-- 项目 → 会话，两级 -->
+    <div class="sb-list is-new"  data-badge="S3" data-badge-in>
+      <div class="proj is-open" data-proj data-group="星辰口腔">
+        <div class="proj-hd"><span class="chev">▾</span><span class="proj-name">星辰口腔</span><span class="proj-cnt">3</span></div>
+        <div class="proj-bd">
+          <div class="sess" data-stage="check"><span class="sess-name">09-18 · 老榜单 · 20 篇</span><span class="st run" title="进行中 · 还没过机器"></span><button class="sess-more" title="更多">⋯</button></div>
+          <div class="sess" data-stage="review"><span class="sess-name">09-17 · 混合 · 8 篇</span><span class="st run" title="进行中 · 等你审"></span><button class="sess-more" title="更多">⋯</button></div>
+          <div class="sess" data-stage="done"><span class="sess-name">09-16 · 仿写 · 5 篇</span><span class="st ok" title="已结束 · 全部审完"></span><button class="sess-more" title="更多">⋯</button></div>
+        </div>
+      </div>
+
+      <div class="proj is-open" data-proj data-group="云栖新能源">
+        <div class="proj-hd"><span class="chev">▾</span><span class="proj-name">云栖新能源</span><span class="proj-cnt">2</span></div>
+        <div class="proj-bd">
+          <div class="sess" data-stage="writing"><span class="sess-name">09-18 · 选型决策 · 12 篇</span><span class="st run" title="进行中"></span><button class="sess-more" title="更多">⋯</button></div>
+          <div class="sess" data-stage="writing"><span class="sess-name">09-15 · 其他 · 待定</span><span class="st run" title="进行中"></span><button class="sess-more" title="更多">⋯</button></div>
+        </div>
+      </div>
+
+      <div class="proj hide" data-proj data-group="已归档" id="grp-archived">
+        <div class="proj-hd"><span class="chev">▸</span><span class="proj-name">已归档</span><span class="proj-cnt">0</span></div>
+        <div class="proj-bd"></div>
+      </div>
+    </div>
+
+    <!-- 侧栏备注：这行是写给自己看的 -->
+    <div class="sb-note is-new"  data-badge="S4" data-badge-in>
+      分组只是前端归纳：每个会话都是独立的新会话，
+      你选了哪个客户，新会话就归到哪个组。<br>
+      知识库 / 技能都走工具调用，不动工作区，也不做隔离。
+    </div>
+
+    <!-- B · 左下角三个入口（新增） -->
+    <div class="sb-bottom is-new" data-badge="S5" data-badge-in>
+      <a class="sb-entry"><i class="ico">▤</i>知识库管理</a>
+      <a class="sb-entry"><i class="ico">⚙</i>skill 管理</a>
+      <a class="sb-entry"><i class="ico">☰</i>设置</a>
+    </div>
+  </aside>
+
+  <!-- ============ 主区 ============ -->
+  <main class="main">
+
+  <!-- ============ 视图一：Landing 页（发起任务的地方） ============ -->
+  <!-- 骨架：客户一行 → 写什么（二选一）→ 工作区 → 怎么写（参考，可叠加）→ 底座（写成什么 + 输入 + 发送） -->
+  <div class="view" id="view-landing">
+    <div class="asm is-new m-weak" id="asm">
+
+      <!-- 给谁写：横着的一张卡 -->
+      <div class="asm-head is-new"  id="asm-head" data-badge="A1" data-badge-in>
+        <span class="ah-t">给</span>
+        <span class="isel"><select id="sel-client">
+          <option>星辰口腔</option>
+          <option>云栖新能源</option>
+        </select></span>
+        <span class="ah-d">·</span>
+        <span class="isel"><select id="sel-line">
+          <option>正畸</option><option>种植</option><option>儿牙</option><option>修复</option>
+        </select></span>
+        <span class="ah-d">·</span>
+        <span class="isel"><select id="sel-term">
+          <option>第 3 期</option><option>第 2 期</option><option>第 1 期</option>
+        </select></span>
+        <span class="ah-t">写</span>
+        <button class="mini-btn" id="btn-new-client">＋ 新建客户</button>
+        <span class="ah-hint">知识库：待接 MCP</span>
+      </div>
+
+      <!-- 主题：选题从哪来，二选一 -->
+      <div class="asm-row is-new"  data-badge="A2" data-badge-in>
+        <span class="row-cap">主题</span>
+        <div class="src-tabs" id="src-tabs">
+          <button class="src-tab is-on" data-mode="weak">薄弱问句</button>
+          <button class="src-tab" data-mode="free">输入</button>
+        </div>
+      </div>
+
+      <!-- 工作区：薄弱问句就地选，不再开弹窗 -->
+      <div class="workarea is-new"  id="wa-host" data-badge="A3" data-badge-in>
+        <div class="weak-block" id="weak-block">
+          <div class="wa-bar">
+            <span class="wa-meta" id="weak-meta">最新采集 09-16 · 37 条</span>
+            <span class="fsel"><select id="f-plat">
+              <option value="">全部平台</option>
+              <option>豆包</option><option>Kimi</option><option>元宝</option><option>DeepSeek</option>
+            </select></span>
+            <span class="fsel"><select id="f-root">
+              <option value="">全部词根</option>
+              <option>正畸</option><option>种植</option><option>儿牙</option><option>综合</option>
+            </select></span>
+            <button class="mini-btn soft" id="btn-top20">勾差额前 20</button>
+            <span class="wa-stat" id="weak-stat"></span>
+            <button class="icon-btn sq" id="btn-zoom" title="放大看">⤢</button>
+          </div>
+          <div class="wa-table">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th class="c-chk"><input type="checkbox" id="chk-all" checked></th>
+                  <th>问句</th>
+                  <th class="c-d">差额（竞品第一 − 客户）</th>
+                  <th class="c-g">缺口平台</th>
+                </tr>
+              </thead>
+              <tbody id="tbl-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- 切到「输入」时，表格让位，但这块还是留着 —— 以后放上下文拼装规则 -->
+        <div class="free-block" id="free-block">
+          <div class="free-hint">这块以后放「上下文拼装规则」</div>
+        </div>
+      </div>
+
+      <!-- 拖杆：工作区和「怎么写」在分同一块空间，往下拖工作区变高，往上拖让位 -->
+      <div class="splitter is-new"  id="splitter" title="拖动调整高度" data-badge="A4"></div>
+
+      <!-- 怎么写：两个标签页 —— 仿写（照着谁）/ 用模板（套哪些写法）。
+           跟上面的「主题」正交，都能叠加；两个标签页之间也不互斥，切换只是切显示 -->
+      <div class="refbox is-new"  id="refbox" data-badge="A5" data-badge-in>
+        <div class="ref-hd" id="ref-hd">
+          <span class="row-cap">怎么写</span>
+          <span class="rh-chev" id="ref-chev">▸</span>
+          <div class="ref-tabs" id="ref-tabs">
+            <button class="ref-tab is-on" data-tab="copy">仿写</button>
+            <button class="ref-tab" data-tab="skill">用模板</button>
+          </div>
+          <span class="rh-s" id="ref-sum"></span>
+        </div>
+        <div class="ref-bd hide" id="ref-bd">
+
+          <!-- 标签页一：仿写 —— 输入区负责长高，「选文件」贴在它里面，方式那排钉在最下面 -->
+          <div class="ref-pane" data-pane="copy">
+            <div class="ref-input-box">
+              <textarea id="ref-text" rows="3" placeholder="一行一个链接，或者直接把整篇正文粘进来…"></textarea>
+              <div class="rib-bar">
+                <button class="mini-btn soft" id="btn-file">选文件</button>
+              </div>
+            </div>
+            <div class="ref-list hide" id="ref-list"></div>
+            <div class="seg2 ref-style" id="copy-style">
+              <button class="seg2-b is-on">一比一</button>
+              <button class="seg2-b">模仿结构</button>
+              <button class="seg2-b">其他</button>
+            </div>
+          </div>
+
+          <!-- 标签页二：用模板 —— 分三层：官方 / 众测 / 个人 -->
+          <div class="ref-pane hide" data-pane="skill">
+
+            <div class="sk-group">
+              <div class="sk-cap">官方</div>
+              <div class="sk-line">
+                <div class="chips" id="chips-type"></div>
+                <button class="more-btn" id="btn-more">更多 ▾</button>
+              </div>
+            </div>
+
+            <div class="sk-group">
+              <div class="sk-cap">众测</div>
+              <div class="sk-line">
+                <div class="chips" id="chips-pub"></div>
+              </div>
+            </div>
+
+            <div class="sk-group">
+              <div class="sk-cap">个人</div>
+              <div class="sk-line">
+                <div class="chips" id="chips-mine"></div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 底座：输入框 + 发送。两种模式下位置完全一样 -->
+      <div class="base is-new"  data-badge="A6" data-badge-in>
+        <div class="cp-box">
+          <textarea rows="1" id="cp-text" placeholder="补充要求（选填）…"></textarea>
+          <button class="cp-zoom-btn is-new"  id="btn-cp-zoom" title="放大编辑" data-badge="A7"><span class="cz-ico">⤢</span>放大</button>
+          <div class="cp-actions">
+            <div class="cp-left">
+              <button class="icon-btn sq" title="附件">＋</button>
+              <span class="ctx-chip" id="ctx-chip">
+                <span class="ctx-txt" id="ctx-txt"></span>
+                <button class="ctx-x" id="ctx-x" title="去掉">×</button>
+              </span>
+            </div>
+            <button class="send" id="btn-dispatch">发送</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ 视图二：会话页（点左栏某条会话进来） ============ -->
+  <div class="view hide" id="view-session">
+    <!-- C · 对话区（现有区域，改渲染形态） -->
+    <div class="chat">
+    <!-- 会话页：顶部悬浮条 —— 左边是发起时的预设，右边是所有任务进程 -->
+    <div class="task-bar is-new"  id="float-panel" data-badge="C1" data-badge-in>
+      <div class="tb-hd" id="fp-hd">
+        <span class="fp-dot"></span>
+        <span class="fp-title" id="fp-title">星辰口腔 · 写 老榜单</span>
+        <span class="fp-toggle" id="fp-toggle">▾</span>
+      </div>
+      <div class="tb-bd" id="fp-bd">
+        <div class="tb-col">
+          <div class="tb-cap">这次发起时的预设</div>
+          <div class="tb-row"><span class="tb-k">客户</span><span class="tb-v" id="tb-client">星辰口腔 · 正畸 · 第 3 期</span></div>
+          <div class="tb-row"><span class="tb-k">素材</span><span class="tb-v" id="tb-src">薄弱问句库 · 20 条</span></div>
+          <div class="tb-row"><span class="tb-k">类型</span><span class="tb-v" id="tb-type">老榜单</span></div>
+          <div class="tb-row"><span class="tb-k">要求</span><span class="tb-v dim" id="tb-req">（没写补充要求）</span></div>
+        </div>
+        <div class="tb-split"></div>
+        <div class="tb-col">
+          <div class="tb-cap" id="tb-task-cap">所有任务 · 3 个在跑 · 1 个等你</div>
+          <div class="fp-row"><span class="st run"></span>写正文 · 文章 2<span class="fp-where">星辰口腔</span></div>
+          <div class="fp-row"><span class="st run"></span>生成选题<span class="fp-where">云栖新能源</span></div>
+          <div class="fp-row"><span class="st run"></span>事实自检 · 文章 1<span class="fp-where">星辰口腔</span></div>
+          <div class="fp-row"><span class="st run"></span>等你确认投放平台<span class="fp-where">星辰口腔</span></div>
+        </div>
+      </div>
+    </div>
+
+
+      <div class="msgs" id="msgs">
+      <div class="msg user">
+        <div class="bubble">星辰口腔 · 正畸，差额前 20 条，老榜单。</div>
+      </div>
+
+      <div class="msg bot">
+        <div class="think collapsed is-new" data-badge="C2" data-badge-in>
+          <div class="think-hd"><span class="chev">▸</span>已思考 8 秒</div>
+          <div class="think-bd">
+            <p>库里最新一次采集是 09-16，正畸线一共 37 条。按差额排下来，缺口集中在「选院」和「价格」这两块……</p>
+          </div>
+        </div>
+
+        <p class="prose">从 09-16 那次采集里按差额取了前 20 条。最薄的一条是<b>成都哪家口腔医院正畸好</b>，差 <b>+100%</b> —— 豆包、Kimi、元宝、DeepSeek 四个平台全缺。</p>
+
+        <div class="tools is-new" data-badge="C3" data-badge-in>
+          <div class="tools-hd"><span class="chev">▾</span>工具链 · 4 次调用<span class="tools-tag">已合并</span></div>
+          <div class="tools-bd">
+            <div class="tool-row"><span class="t-ico">▸</span>读取薄弱问句库 <span class="t-res">09-16 · 20 条</span></div>
+            <div class="tool-row"><span class="t-ico">▸</span>生成选题 <span class="t-res">12 条</span></div>
+            <div class="tool-row"><span class="t-ico">▸</span>查知识库 <span class="t-res">星辰口腔 · 正畸</span></div>
+            <div class="tool-row"><span class="t-ico">▸</span>写 老榜单 <span class="t-res">3 篇</span></div>
+          </div>
+          <div class="tools-note">工具链不 block —— 下面的文字继续流</div>
+        </div>
+
+        <p class="prose">先落在差额最大的 3 条上，剩下 9 条选题排在后面。<span class="caret"></span></p>
+
+        <div class="artifact is-new"  data-badge="C4" data-badge-in>
+          <div class="art-ico">＃</div>
+          <div>
+            <div class="art-tt">老榜单 · 星辰口腔 · 09-17</div>
+            <div class="art-sub">3 篇 · 已写入工作区</div>
+          </div>
+          <button class="art-btn">在 ⑤ 产物管理 里看</button>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <div class="composer plain is-new"  data-badge="C6" data-badge-in>
+      <div class="cp-inner">
+        <div class="cp-box">
+          <!-- 挑篇：序号就是篇号，颜色就是机器查出来的结果。一切为了"发出去"服务，所以放在输入框里 -->
+          <div class="pick-row hide" id="pick-row">
+            <span class="pk-k">改哪几篇</span>
+            <span class="pk-chips" id="pk-chips"></span>
+            <span class="pk-tools">
+              <button class="mini-btn soft sm" id="pick-all">全选</button>
+              <button class="sel-dot red" id="pick-bad" title="只选有问题的"></button>
+              <button class="sel-dot green" id="pick-good" title="只选没问题的"></button>
+            </span>
+          </div>
+          <textarea rows="2" id="c6-text" placeholder="说点什么…（Enter 发送）"></textarea>
+          <div class="cp-actions">
+            <div class="cp-left">
+              <button class="icon-btn sq" title="附件">＋</button>
+              <span class="ctx-chip fix-chip hide" id="fix-chip">
+                <span class="ctx-txt" id="fix-txt"></span>
+                <button class="ctx-x" id="fix-x" title="取消选择">×</button>
+              </span>
+            </div>
+            <button class="send" id="c6-send">发送</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ctx-bar is-new"  data-badge="C5" data-badge-in>
+      <span class="cb-k">上下文</span>
+      <span class="cb-num" id="cb-used">12.4k</span>
+      <span class="cb-of">/ 128k</span>
+      <span class="cb-bar"><i id="cb-fill" style="width:9.7%"></i></span>
+      <span class="cb-sp"></span>
+      <span class="cb-k">本对话</span>
+      <span class="cb-num" id="cb-tok">86.3k</span>
+      <span class="cb-of">tok</span>
+      <span class="cb-sep"></span>
+      <span class="cb-k">缓存命中</span>
+      <span class="cb-num good" id="cb-cache">92.4%</span>
+    </div>
+
+  </div>
+
+  </main>
+
+  <!-- ============ 右栏 · 审核（这一栏以后只服务审核） ============ -->
+  <aside class="rail is-new" id="rail">
+    <div class="rail-grip is-new" data-badge="R4" data-badge-in id="rail-grip" title="拖动调宽"></div>
+    <div class="rail-hd">
+      <span class="rail-tt">审核</span>
+      <button class="rail-toggle" id="btn-rail" title="收起 / 展开">⟨</button>
+    </div>
+
+    <div class="rev">
+      <!-- 上面：本对话的产物，点着切换；多的话横着滚 -->
+      <div class="chk is-new" data-badge="R5" data-badge-in id="chk">
+        <div class="chk-hd" id="chk-hd">
+          <span class="chk-dot" id="chk-dot"></span>
+          <span class="chk-txt" id="chk-txt">未审核</span>
+          <span class="sel chk-sel"><select id="chk-preset" disabled>
+            <option>星辰口腔 · 标准硬检</option>
+            <option>自定义（临时）</option>
+          </select></span>
+          <button class="mini-btn sm" id="chk-run">开始检查</button>
+          <span class="chk-chev" id="chk-chev">▸</span>
+        </div>
+        <div class="chk-bd hide" id="chk-bd">
+          <div class="chk-rules" id="chk-rules"></div>
+          <div class="chk-foot">
+            <span class="chk-n" id="chk-n"></span>
+            <button class="mini-btn soft sm" id="chk-edit">编辑</button>
+            <button class="mini-btn soft sm hide" id="chk-cancel">取消</button>
+            <button class="mini-btn sm hide" id="chk-save">保存</button>
+          </div>
+        </div>
+      </div>
+      <div class="rev-split-h hide" id="rev-split-h" title="拖动调高度"></div>
+
+      <div class="rev-bar">
+        <span class="rev-count" id="rev-count">已通过 0 / 20</span>
+        <span class="rev-hint">确认 = 入库</span>
+      </div>
+
+      <div class="rev-main">
+        <div class="rev-list is-new" data-badge="R1" data-badge-in id="rev-tabs"></div>
+        <div class="rev-split-v" id="rev-split-v" title="拖动调宽度"></div>
+        <div class="rev-body is-new"  data-badge="R2" data-badge-in>
+          <div class="rev-titlerow">
+            <div class="rev-title" id="rev-title">成都正畸哪家好？三家对比</div>
+            <div class="doc-seg hide" id="doc-seg">
+              <button class="seg-i is-on" data-old="0">改后</button>
+              <button class="seg-i" data-old="1">改前</button>
+            </div>
+          </div>
+          <div class="rev-issues hide" id="rev-issues"></div>
+          <div class="rev-doc" id="rev-doc"></div>
+        </div>
+      </div>
+
+      <!-- 下面：打勾 -->
+      <div class="rev-foot is-new"  data-badge="R3" data-badge-in>
+        <div class="rf-hint hide" id="rev-hint">先跑一遍机器检查，再人工确认</div>
+        <button class="mini-btn" id="rev-one">确认</button>
+        <button class="send" id="rev-all">全部确认</button>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- 薄弱问句 · 放大看。表格本体是从页面里「搬」进来的同一个 DOM，勾选状态天然同步 -->
+<div class="mask hide" id="mask">
+  <div class="sheet">
+    <div class="sheet-hd">
+      <div class="sheet-tt">薄弱问句 · 放大看</div>
+      <div class="sheet-sub" id="sheet-sub">星辰口腔 · 正畸 · 最新采集 09-16</div>
+    </div>
+
+    <div class="sheet-bd" id="sheet-slot"><!-- #weak-block 搬进来 --></div>
+
+    <div class="sheet-ft">
+      <span class="cnt" id="pick-cnt">已选 20 条</span>
+      <span class="sp"></span>
+      <button class="send" id="btn-done">收起</button>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- 图例：标注模式下用，想指哪儿就直接说编号 -->
+<button class="al-btn hide" id="al-btn">图例</button>
+<div class="anno-legend hide" id="anno-legend">
+  <div class="al-hd">改哪儿？报编号</div>
+  <div class="al-g">
+    <div class="al-cap">装配台（新建任务页）</div>
+    <div class="al-row" data-for="A1"><b>A1</b>给谁写 · 客户/业务线/期数</div>
+    <div class="al-row" data-for="A2"><b>A2</b>主题 · 薄弱问句 / 输入</div>
+    <div class="al-row" data-for="A3"><b>A3</b>工作区 · 薄弱问句表</div>
+    <div class="al-row" data-for="A4"><b>A4</b>拖杆 · 上下分高度</div>
+    <div class="al-row" data-for="A5"><b>A5</b>怎么写 · 仿写 / 用模板</div>
+    <div class="al-row" data-for="A6"><b>A6</b>底座 · 补充要求 + 发送</div>
+    <div class="al-row" data-for="A7"><b>A7</b>放大编辑按钮</div>
+  </div>
+  <div class="al-g">
+    <div class="al-cap">会话页</div>
+    <div class="al-row" data-for="C1"><b>C1</b>顶部任务条</div>
+    <div class="al-row" data-for="C2"><b>C2</b>思考链</div>
+    <div class="al-row" data-for="C3"><b>C3</b>工具链</div>
+    <div class="al-row" data-for="C4"><b>C4</b>产物卡</div>
+    <div class="al-row" data-for="C5"><b>C5</b>用量行 · 上下文/token/缓存</div>
+    <div class="al-row" data-for="C6"><b>C6</b>会话输入框</div>
+  </div>
+  <div class="al-g">
+    <div class="al-cap">右栏（有产物才有）</div>
+    <div class="al-row" data-for="R1"><b>R1</b>产物切换条</div>
+    <div class="al-row" data-for="R2"><b>R2</b>审核正文</div>
+    <div class="al-row" data-for="R3"><b>R3</b>审核打勾</div>
+    <div class="al-row" data-for="R4"><b>R4</b>拖宽把手</div>
+    <div class="al-row" data-for="R5"><b>R5</b>检查规则条 · 锁定 / 编辑 / 检查</div>
+  </div>
+  <div class="al-g">
+    <div class="al-cap">左栏</div>
+    <div class="al-row" data-for="S1"><b>S1</b>品牌行 · 标注 / 日夜</div>
+    <div class="al-row" data-for="S2"><b>S2</b>＋ 新建任务</div>
+    <div class="al-row" data-for="S3"><b>S3</b>客户分组 · 会话列表</div>
+    <div class="al-row" data-for="S4"><b>S4</b>侧栏备注</div>
+    <div class="al-row" data-for="S5"><b>S5</b>底部三个入口</div>
+  </div>
+</div>
+
+<div class="menu hide" id="sess-menu"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
