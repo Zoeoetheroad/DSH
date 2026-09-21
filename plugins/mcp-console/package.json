@@ -1,0 +1,22 @@
+{
+  "name": "dsh-mcp-console",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Settings -> MCP console for DSH: lists configured MCP servers, their live tools, connection status, and per-tool enable/disable.",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": []
+    }
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  }
+}
