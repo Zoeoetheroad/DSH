@@ -1,0 +1,13 @@
+# dsh-workbench: inserts its own loader row (host half) into the roster.
+# The client half rides the same row through the package's dsh.client declaration.
+#
+# knowledgeServer / libraryServer 指的是「设置 → MCP」里那两个服务器的 serverName，
+# 不是 URL —— 工作台不自己配地址和密钥。详细说明见 ../../config/cordis.patch.fragment.yml
+- insert:
+    - id: dsh-workbench
+      name: dsh-workbench
+      config:
+        knowledgeServer: sora-knowledge
+        libraryServer: sora-articles
+        clientsTool: list_clients
+        articlesTool: list_articles

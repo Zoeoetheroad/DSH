@@ -1,0 +1,60 @@
+# 需要并进 $DSH_HOME/cordis.patch.yml 的行。
+#
+# 三条规矩（踩过的坑）：
+#   1. ⚠️ **密钥不在这个文件里** —— 带 <> 的地方要换成你自己的。
+#   2. ⚠️ 新行必须写在 `insert:` 里面。顶层的 `- id: xxx` 是"修改**已有**行"，
+#      不会创建新行，写错了会静默不生效。
+#   3. ⚠️ 别写进 `$DSH_HOME/profiles/<profile>/cordis.patch.yml` ——
+#      那份文件每次宿主启动都会被平台覆盖，写进去下次重启就丢。
+#      宿主层那份（home 根目录下的 cordis.patch.yml）才是安全的。
+#
+# 改地址/换 token：改完**热生效，不用重启**（MCP 行与 skill-remote 行都是）。
+
+# ── 1) 工作台插件本身 ─────────────────────────────────────────────────
+# host 半（lib/index.js 壳 + lib/impl.js 逻辑）+ client 半（lib/client.js 界面）。
+# 五个配置项都能省，省了就用这里写的默认值。
+- insert:
+    - id: dsh-workbench
+      name: dsh-workbench
+      config:
+        # 知识库 MCP 的 serverName（不是 URL）—— 工作台不自己配地址和密钥，
+        # 直接用你在「设置 → MCP」里挂好的那台。
+        knowledgeServer: sora-knowledge
+        # 文章库 MCP 的 serverName。
+        libraryServer: sora-articles
+        # 客户列表用哪个工具；留空则按名字猜（hierarchy → list → 第一个）。
+        clientsTool: list_clients
+        articlesTool: list_articles
+
+# ── 2) 知识库 / 文章库两个 MCP ─────────────────────────────────────────
+# 这两个服务跑在**你自己电脑上**，用 Cloudflare 快速通道（*.trycloudflare.com）
+# 临时暴露出来 —— 电脑/隧道一重启，**地址就变了**。
+# 连不上时：先问地址，别改代码、别拿别的 URL 试（见 ENVIRONMENT.md）。
+- insert:
+    - id: mcp-knowledge
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: sora-knowledge
+        transport: streamable-http
+        url: https://<知识库隧道域名>/mcp
+        headers:
+          Authorization: Bearer <知识库 TOKEN>
+    - id: mcp-articles
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: sora-articles
+        transport: streamable-http
+        url: https://<文章库隧道域名>/mcp
+        headers:
+          Authorization: Bearer <文章库 TOKEN>
+
+# ── 3) 远程技能 provider ──────────────────────────────────────────────
+# 技能（文章类型那些 sora-* skill）统一放服务端，本地不落文件。
+- insert:
+    - id: skill-remote
+      name: 'dsh-skill-remote'
+      config:
+        url: 'https://<技能服务隧道域名>'
+        token: '<技能服务 TOKEN>'
+        # 附属文件（references/、prompts/）按「路径带 token」取
+        resourceToken: '<技能服务 TOKEN>'
