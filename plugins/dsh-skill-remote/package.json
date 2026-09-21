@@ -1,0 +1,15 @@
+{
+  "name": "dsh-skill-remote",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Remote skill provider for DSH: load agent skills from a central HTTP service instead of local directories.",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1"
+  }
+}
