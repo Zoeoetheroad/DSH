@@ -9,7 +9,7 @@
 ## 一、安装
 
 ```sh
-dsh plugin --profile web add "git+ssh://git@github.com/Zoeoetheroad/DSHplugin.git#path:plugins/dsh-skill-remote"
+dsh plugin --profile web add "git+ssh://git@github.com/Zoeoetheroad/DSH.git#path:plugins/dsh-skill-remote"
 ```
 
 装完**必须重启 DSH**（`dsh web`）。

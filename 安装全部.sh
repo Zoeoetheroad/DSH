@@ -11,7 +11,7 @@
 set -euo pipefail
 
 PROFILE="${1:-web}"
-REPO="${DSH_PLUGIN_REPO:-git+ssh://git@github.com/Zoeoetheroad/DSHplugin.git}"
+REPO="${DSH_PLUGIN_REPO:-git+ssh://git@github.com/Zoeoetheroad/DSH.git}"
 
 if ! command -v dsh >/dev/null 2>&1; then
   echo "找不到 dsh 命令。请先确认 DSH 已安装、dsh 在 PATH 里。"

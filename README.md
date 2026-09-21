@@ -1,4 +1,4 @@
-# DSHplugin
+# DSH 插件仓库
 
 我自己的 DSH 插件 / 工具 / 脚本。**一个目录一个东西**，互相独立，各装各的。
 
@@ -10,7 +10,7 @@
 ## 给同事：一条命令全装
 
 ```sh
-git clone git@github.com:Zoeoetheroad/DSHplugin.git ~/dsh-plugins && bash ~/dsh-plugins/安装全部.sh
+git clone git@github.com:Zoeoetheroad/DSH.git ~/dsh-plugins && bash ~/dsh-plugins/安装全部.sh
 ```
 
 前提：这台机器**有权限访问这个仓库**（私有仓库需要配好 GitHub SSH key）。
@@ -27,7 +27,7 @@ git clone git@github.com:Zoeoetheroad/DSHplugin.git ~/dsh-plugins && bash ~/dsh-
 ## 只装其中一个
 
 ```sh
-dsh plugin --profile web add "git+ssh://git@github.com/Zoeoetheroad/DSHplugin.git#path:plugins/mcp-manager"
+dsh plugin --profile web add "git+ssh://git@github.com/Zoeoetheroad/DSH.git#path:plugins/mcp-manager"
 ```
 
 `#path:plugins/<目录名>` 指定装哪个 —— 所以**一个仓库能放很多个插件**，各装各的。
