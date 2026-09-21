@@ -1,4 +1,0 @@
-# dsh-local-mcp-manager: inserts its own web client row into the roster.
-- insert:
-    - id: dsh-local-mcp-manager
-      name: 'dsh-local-mcp-manager'

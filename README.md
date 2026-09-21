@@ -27,7 +27,7 @@ git clone git@github.com:Zoeoetheroad/DSH.git ~/dsh-plugins && bash ~/dsh-plugin
 ## 只装其中一个
 
 ```sh
-dsh plugin --profile web add "git+ssh://git@github.com/Zoeoetheroad/DSH.git#path:plugins/mcp-manager"
+dsh plugin --profile web add "git+ssh://git@github.com/Zoeoetheroad/DSH.git#path:plugins/mcp-console"
 ```
 
 `#path:plugins/<目录名>` 指定装哪个 —— 所以**一个仓库能放很多个插件**，各装各的。
@@ -36,9 +36,11 @@ dsh plugin --profile web add "git+ssh://git@github.com/Zoeoetheroad/DSH.git#path
 
 | 路径 | 作用 | 依赖 |
 |---|---|---|
-| `plugins/mcp-manager` | 设置里的 MCP 管理页：增/删 MCP 服务器 | 无（自带 js-yaml） |
+| `plugins/mcp-console` | **设置 → MCP 控制台**（当前版本）：列出已配的 MCP 服务器、它们**真正注册了哪些工具**、连接状态，还能逐个开关工具、改地址和请求头 | 无（自带 js-yaml） |
+| `plugins/dsh-skill-remote` | 远程技能 provider：技能放服务端，本地不落文件 | 无 |
 | `plugins/sidebar-glass` | 侧边栏毛玻璃 + 工作区行底色/标题加粗居中 | **需要 `deepseek-harness-background`，并开启壁纸** |
 | `workbench/` | 云上生文 Agent 的工作台（**交互原型，不是插件**），入口看 `workbench/README.md` | 无 |
+| `agent-config/` | Agent 的配置：工作台插件 + 配置片段 + 安装脚本 + 截图工具 + `TASKS.md`。自成一体，看它自己的 README | 无 |
 
 ## 加新东西（我自己用）
 
