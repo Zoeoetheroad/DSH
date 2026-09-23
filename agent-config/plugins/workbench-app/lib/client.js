@@ -534,8 +534,12 @@ window.__ModuleLoader__.load({
 						else if (nodes !== null && typeof nodes === "object") list = Object.keys(nodes).map(function (k) { return nodes[k]; });
 						for (var i = 0; i < list.length; i++) {
 							var node = list[i];
-							if (node && node.kind === "user" && node.data && Array.isArray(node.data.content)) {
-								var firstUser = node.data.content
+							if (node && node.kind === "user") {
+														/* 实测（本地诊断插件）：useChat 的节点文本在 node.content，官方 promptText 的 node.data.content 是另一层包装，别混。 */
+														var content = Array.isArray(node.content) ? node.content
+															: (node.data && Array.isArray(node.data.content)) ? node.data.content : null;
+														if (!content) continue;
+								var firstUser = content
 									.filter(function (block) { return block && block.type === "text" && typeof block.text === "string"; })
 									.map(function (block) { return block.text; })
 									.join("");
