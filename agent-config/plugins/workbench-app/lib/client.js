@@ -421,24 +421,67 @@ window.__ModuleLoader__.load({
 
 		/* 会话域接力：装配台（root 域）拿不到 inputActions，发不了消息。
 		 * 这里挂在会话的 composer dock 上，把装配台留下的提示词塞进草稿并提交。
-		 * 一次性：取走即清，避免重开渲染时重复发送。 */
+		 * 一次性：取走即清，避免重开渲染时重复发送。
+		 *
+		 * P0 修复（串台）：以前这里的 effect 只看 actions，凡挂着一个 dock
+		 * 就消费 —— 于是提示词落进了「当时打开的那条会话」。现在加两条守卫：
+		 *   1. 只在**空白会话**里消费：startSession() 会复用/新建空白会话，
+		 *      目标会话必然没有消息节点；非空白的一律跳过，留给目标。
+		 *      （旧会话若本身就是空白，它就是 startSession 复用的目标，消费正确。）
+		 *   2. dispatch() 派发 `wb-prompt-set` 事件：当前打开的会话如果恰好
+		 *      是空白目标（actions/isEmpty 都没变，effect 不会重跑），靠事件
+		 *      触发一次检查，提示词不会卡住。 */
 		var pendingPrompt = null;
 
 		function PromptRelay(props) {
 			var actions = props.inputActions;
-			React.useEffect(function () {
+			var useChat = props.useChat;
+
+			/* 当前会话的消息节点数：0 = 空白。selector 返回数字，
+			 * snapshot 相等性比较才稳定，不会引发多余的 effect。 */
+			var nodeCount = 0;
+			if (typeof useChat === "function") {
+				nodeCount = useChat(function (snapshot) {
+					var nodes = snapshot && snapshot.legacy && snapshot.legacy.nodes;
+					if (Array.isArray(nodes)) return nodes.length;
+					if (nodes !== null && typeof nodes === "object") return Object.keys(nodes).length;
+					return 0;
+				});
+				if (typeof nodeCount !== "number" || isNaN(nodeCount)) nodeCount = 1; // 认不出就当非空白，宁可不发不串台
+			} else {
+				nodeCount = -1; // 拿不到 useChat —— 退回旧行为（没有判断依据）
+			}
+			var isEmpty = nodeCount === 0 || nodeCount === -1;
+
+			var consumeRef = React.useRef(null);
+			consumeRef.current = function () {
 				if (pendingPrompt === null) return;
 				if (actions === undefined || actions === null) {
-					/* 真有提示词要发却拿不到 inputActions —— 说出来，别静默吞掉。
-					 * 用户测试时最可能看到的就是这个（会话开了、输入框是空的）。 */
+					/* 真有提示词要发却拿不到 inputActions —— 说出来，别静默吞掉。 */
 					console.warn("[dsh-workbench] 接力挂件拿不到 inputActions，提示词没发出去");
+					return;
+				}
+				if (!isEmpty) {
+					/* 非空白会话：不是目标，跳过 —— 提示词留给空白目标会话。 */
 					return;
 				}
 				var text = pendingPrompt;
 				pendingPrompt = null;
 				actions.setDraft(text);
 				actions.submit();
-			}, [actions]);
+			};
+
+			React.useEffect(function () {
+				consumeRef.current();
+			}, [actions, isEmpty]);
+
+			/* dispatch() 设好 pendingPrompt 后派发的事件：让"当前已挂着的
+			 * 空白会话"（deps 都没变的那种）也能立刻消费，不等下一次渲染。 */
+			React.useEffect(function () {
+				var onSet = function () { consumeRef.current(); };
+				window.addEventListener("wb-prompt-set", onSet);
+				return function () { window.removeEventListener("wb-prompt-set", onSet); };
+			}, []);
 			return null;
 		}
 
@@ -610,7 +653,11 @@ window.__ModuleLoader__.load({
 				} catch (error) {
 					pendingPrompt = null;
 					setSending("起会话失败：" + String(error && error.message ? error.message : error));
+					return;
 				}
+				/* 通知接力挂件：万一当前挂着的会话就是空白目标
+				 * （effect 的 deps 都没变），靠这个事件立刻消费。 */
+				try { window.dispatchEvent(new Event("wb-prompt-set")); } catch (error) { /* 老浏览器就算了 */ }
 			}
 
 			/* A4：拖杆改工作区高度。指针捕获，鼠标移出窗口也不会卡住。 */
@@ -861,6 +908,21 @@ window.__ModuleLoader__.load({
 
 		/* ---- wiring ------------------------------------------------------- */
 		function apply(ctx, config) {
+			/* 覆盖 sidebar 的「新会话」文本。用单语言的 untyped 形式
+			 * （register(ns, locale, dict)）：typed 形式要求 namespace 在
+			 * 合并表里、且每个内置语言都齐 —— 这里不满足就静默，别让它炸。
+			 * sidebar 命名空间可能已有占用者，重复注册会抛，同样吞掉。 */
+			if (ctx.locale && typeof ctx.locale.register === "function") {
+				ctx.effect(function() {
+					try {
+						ctx.locale.register("sidebar", "zh", { "session.new": "新建任务", "session.new.label": "新建任务" });
+						ctx.locale.register("sidebar", "en", { "session.new": "New Task", "session.new.label": "New task" });
+					} catch (error) {
+						console.log("[dsh-workbench] sidebar 文案没覆盖上（可能已被占用）：", String(error && error.message ? error.message : error));
+					}
+				}, "dsh-workbench: override sidebar text");
+			}
+
 			var style = injectStyles();
 			if (style !== null && ctx && typeof ctx.effect === "function") {
 				ctx.effect(function () { return function () {
@@ -906,7 +968,7 @@ window.__ModuleLoader__.load({
 			}
 		}
 
-		exports.inject = ["slots", "layout"];
+		exports.inject = ["slots", "layout", "locale"];
 		exports.apply = apply;
 		return module.exports;
 	}
