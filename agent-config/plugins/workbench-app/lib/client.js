@@ -938,6 +938,17 @@ window.__ModuleLoader__.load({
 				}, WorkbenchIcon);
 			});
 
+			/* ---- 没收设置入口（2026-09-23 用户决策）--------------------------
+			 * 产品形态：使用者只写文章，不做任何配置。`sidebar.settings` 是
+			 * single 槽 —— 注册空组件即整体替换官方设置按钮。设置弹窗随之
+			 * 永远打不开（模型由管理员在服务器后台配置，域名访问本就锁着）。 */
+			ctx.slots.inject("sidebar.settings", function () {
+				return ctx.slots.register({
+					name: "sidebar.settings",
+					id: "workbench-no-settings",
+				}, function () { return null; });
+			});
+
 			/* 会话域的接力挂件 —— 装配台发出去的那句话靠它落地。 */
 			ctx.slots.inject("conversation.composer.dock", function () {
 				return ctx.slots.register({
