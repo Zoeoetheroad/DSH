@@ -908,21 +908,10 @@ window.__ModuleLoader__.load({
 
 		/* ---- wiring ------------------------------------------------------- */
 		function apply(ctx, config) {
-			/* 覆盖 sidebar 的「新会话」文本。用单语言的 untyped 形式
-			 * （register(ns, locale, dict)）：typed 形式要求 namespace 在
-			 * 合并表里、且每个内置语言都齐 —— 这里不满足就静默，别让它炸。
-			 * sidebar 命名空间可能已有占用者，重复注册会抛，同样吞掉。 */
-			if (ctx.locale && typeof ctx.locale.register === "function") {
-				ctx.effect(function() {
-					try {
-						ctx.locale.register("sidebar", "zh", { "session.new": "新建任务", "session.new.label": "新建任务" });
-						ctx.locale.register("sidebar", "en", { "session.new": "New Task", "session.new.label": "New task" });
-					} catch (error) {
-						console.log("[dsh-workbench] sidebar 文案没覆盖上（可能已被占用）：", String(error && error.message ? error.message : error));
-					}
-				}, "dsh-workbench: override sidebar text");
-			}
-
+			/* 注意：**不要**在这里注册 locale。`sidebar` 命名空间是官方
+			 * dsh-client-ui-sidebar 的单一占用者，我们再去 register 会把
+			 * 官方侧边栏插件整个炸掉（"locale namespace sidebar already
+			 * has locale zh"，9-23 实测）。文案覆盖不值得这个代价。 */
 			var style = injectStyles();
 			if (style !== null && ctx && typeof ctx.effect === "function") {
 				ctx.effect(function () { return function () {
@@ -968,7 +957,7 @@ window.__ModuleLoader__.load({
 			}
 		}
 
-		exports.inject = ["slots", "layout", "locale"];
+		exports.inject = ["slots", "layout"];
 		exports.apply = apply;
 		return module.exports;
 	}
