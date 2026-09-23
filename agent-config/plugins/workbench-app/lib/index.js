@@ -28,6 +28,7 @@ const ROUTES = [
   '/api/workbench/skills',
   '/api/workbench/mcp',
   '/api/workbench/task-meta',
+  '/api/workbench/task-status',
 ]
 
 /** 默认工作区：装配台发起的会话都落在这里。目录不存在就建。

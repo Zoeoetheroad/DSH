@@ -208,6 +208,15 @@ window.__ModuleLoader__.load({
 			".wb_taskTopic{margin-left:auto;font-size:12.5px;color:var(--wb-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}",
 			".wb_taskTitle{font-weight:600;font-size:13.5px;}",
 			".wb_taskSkills,.wb_taskBase{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}",
+			".wb_taskbarWrap{padding:10px 20px 4px;background:var(--wb-bg);border-bottom:1px solid var(--wb-line-soft);}",
+			".wb_taskbar{display:flex;background:var(--wb-elev);border:1px solid var(--wb-line-soft);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.06);overflow:hidden;}",
+			".wb_col{flex:1;padding:10px 14px;min-width:0;}",
+			".wb_colDiv{border-left:1px solid var(--wb-line-soft);}",
+			".wb_colTitle{font-size:12px;color:var(--wb-dim);margin-bottom:4px;font-weight:600;}",
+			".wb_row{display:flex;gap:8px;font-size:12.5px;line-height:1.9;min-width:0;}",
+			".wb_label{color:var(--wb-dim2);flex:0 0 3.5em;}",
+			".wb_value{color:var(--wb-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}",
+			".wb_gate{font-size:12px;color:var(--wb-dim);line-height:1.9;}",
 
 			/* A5 用模板（skill 没接 → 只有分组和空态） */
 			".wb_skGroup{display:flex; flex-direction:column; gap:6px;}",
@@ -525,30 +534,36 @@ window.__ModuleLoader__.load({
 				/* 任务编号直接从会话首条 user 消息解析 —— 预填固定带 [任务编号：…]，跨设备也稳。
 				 * user 节点结构（官方 promptText 同款）：node.data.content[].type==="text" → .text */
 				var metaId = "";
+				var diag = "no-chat";
 				if (typeof useChat === "function" && sessionId !== undefined && sessionId !== null) {
-					metaId = useChat(function (snapshot) {
+					useChat(function (snapshot) {
 						var nodes = snapshot && snapshot.legacy && snapshot.legacy.nodes;
 						var list = [];
 						if (Array.isArray(nodes)) list = nodes;
 						else if (nodes && typeof nodes.forEach === "function") nodes.forEach(function (v) { list.push(v); });
 						else if (nodes !== null && typeof nodes === "object") list = Object.keys(nodes).map(function (k) { return nodes[k]; });
+						diag = (Array.isArray(nodes) ? "Array" : typeof nodes) + "/" + list.length;
 						for (var i = 0; i < list.length; i++) {
 							var node = list[i];
 							if (node && node.kind === "user") {
+								diag += " · user@" + i;
 														/* 实测（本地诊断插件）：useChat 的节点文本在 node.content，官方 promptText 的 node.data.content 是另一层包装，别混。 */
 														var content = Array.isArray(node.content) ? node.content
 															: (node.data && Array.isArray(node.data.content)) ? node.data.content : null;
-														if (!content) continue;
+														if (!content) { diag += " · content缺(" + Object.keys(node).join("+") + ")"; continue; }
 								var firstUser = content
 									.filter(function (block) { return block && block.type === "text" && typeof block.text === "string"; })
 									.map(function (block) { return block.text; })
 									.join("");
+								diag += " · 文本=" + (firstUser.slice(0, 40).replace(/\n/g, "⏎") || "(空)");
 								var match = firstUser.match(/[【\[]任务编号[：:]([a-z0-9-]+)[\]】]/);
-								return match ? match[1] : "";
+								if (match) { metaId = match[1]; diag += " · 命中"; }
+								else diag += " · 未命中";
+								break;
 							}
 						}
 						return "";
-					}) || "";
+					});
 				}
 				React.useEffect(function () {
 					if (sessionId === undefined || sessionId === null) return;
@@ -565,23 +580,79 @@ window.__ModuleLoader__.load({
 					return function () { alive = false; };
 				}, [sessionId, metaId]);
 
+				/* 右栏数据一：本会话的子任务（subagent 会话）。selector 只返回
+				 * 稳定字符串，避免每次渲染新引用导致无限重渲。 */
+				var subsText = "";
+				if (typeof useSessions === "function" && sessionId !== undefined && sessionId !== null) {
+					subsText = useSessions(function (s) {
+						var byId = s && s.byId ? s.byId : {};
+						var rows = [];
+						Object.keys(byId).forEach(function (id) {
+							var rec = byId[id];
+							if (rec && rec.parentId === sessionId) {
+								rows.push((rec.displayTitle || id) + "｜" + (rec.status || ""));
+							}
+						});
+						return rows.join("§");
+					}) || "";
+				}
+				/* 右栏数据二：产物 / 入库客观状态（宿主按客户目录探测）。 */
+				var state2 = React.useState({ ws: null, lib: null });
+				var st = state2[0], setSt = state2[1];
+				React.useEffect(function () {
+					if (meta === null || typeof meta !== "object" || !meta.client) return;
+					var alive = true;
+					fetch("/api/workbench/task-status?client=" + encodeURIComponent(meta.client), { headers: { accept: "application/json" } })
+						.then(function (r) { return r.json(); })
+						.then(function (body) {
+							if (alive && body && body.ok === true) setSt({ ws: body.workspace || null, lib: body.library || null });
+						})
+						.catch(function () { });
+					return function () { alive = false; };
+				}, [metaId, meta && meta.client]);
+
 				if (meta === null || typeof meta !== "object") {
 					return h("div", { className: "wb_task" },
 						h("span", { className: "wb_taskTitle" }, title === "" ? "会话" : title));
 				}
-				var headBits = [];
-				if (meta.client) headBits.push(h("span", { className: "wb_taskClient", key: "c" }, meta.client));
-				if (meta.line) headBits.push(h("span", { className: "wb_taskDim", key: "l" }, "· " + meta.line));
-				if (meta.period) headBits.push(h("span", { className: "wb_taskDim", key: "p" }, "· " + meta.period));
-				return h("div", { className: "wb_task" },
-					h("div", { className: "wb_taskRow" },
-						h.apply(null, ["span", { className: "wb_taskHead" }].concat(headBits)),
-						meta.topic ? h("span", { className: "wb_taskTopic" }, "主题：" + meta.topic) : null),
-					h("div", { className: "wb_taskRow2" },
-						(meta.skills || []).length > 0 ? h("span", { className: "wb_taskSkills" }, "技能：" + meta.skills.join("、")) : null,
-						(meta.refs && meta.refs.urls && meta.refs.urls.length > 0)
-							? h("span", { className: "wb_taskDim" }, "仿写 " + meta.refs.urls.length + " 篇 · " + (meta.refs.style || "")) : null,
-						meta.base ? h("span", { className: "wb_taskBase" }, "要求：" + meta.base) : null));
+
+				function presetRow(label, value) {
+					if (!value) return null;
+					return h("div", { className: "wb_row", key: label },
+						h("span", { className: "wb_label" }, label),
+						h("span", { className: "wb_value" }, value));
+				}
+				var clientText = [meta.client, meta.line, meta.period].filter(Boolean).join(" · ");
+				var materialText = (meta.refs && meta.refs.urls && meta.refs.urls.length > 0)
+					? "参考文章 · " + meta.refs.urls.length + " 篇" + (meta.refs.style ? " · " + meta.refs.style : "")
+					: "客户知识库";
+				var typeText = [meta.mode, (meta.refs && meta.refs.style && meta.refs.urls && meta.refs.urls.length > 0) ? meta.refs.style : ""].filter(Boolean).join(" · ");
+				var wsText = (st.ws && st.ws.exists) ? "已写入 " + st.ws.files + " 个文件" + (st.ws.recent > 0 ? "（24h 内新增 " + st.ws.recent + "）" : "") : "暂无";
+				var libText = (st.lib && st.lib.exists) ? "文章库已有 " + st.lib.files + " 篇" + (st.lib.recent > 0 ? "（24h 内新增 " + st.lib.recent + "）" : "") : "暂无";
+				var subRows = subsText === "" ? [] : subsText.split("§");
+
+				return h("div", { className: "wb_taskbarWrap" },
+					h("div", { className: "wb_taskbar" },
+						h("div", { className: "wb_col" },
+							h("div", { className: "wb_colTitle" }, "这次发起时的预设"),
+							presetRow("客户", clientText),
+							presetRow("素材", materialText),
+							presetRow("类型", typeText || meta.mode),
+							presetRow("要求", meta.base || "（没写补充要求）"),
+							presetRow("主题", meta.topic),
+							(meta.skills || []).length > 0 ? presetRow("技能", meta.skills.join("、")) : null),
+						h("div", { className: "wb_col wb_colDiv" },
+							h("div", { className: "wb_colTitle" }, "任务进程"),
+							subRows.length > 0
+								? subRows.map(function (rowText, i) {
+									var parts = rowText.split("｜");
+									return h("div", { className: "wb_row", key: i },
+										h("span", { className: "wb_value" }, parts[0]),
+										parts[1] ? h("span", { className: "wb_gate" }, parts[1]) : null);
+								})
+								: h("div", { className: "wb_gate" }, "暂无子任务"),
+							h("div", { className: "wb_gate" }, "产物：" + wsText),
+							h("div", { className: "wb_gate" }, "入库：" + libText))));
 			}
 
 		/* ==================================================================

@@ -25,7 +25,7 @@
  *   GET /api/workbench/mcp                  → 诊断：这台 Host 挂了哪些 MCP、各有哪些工具
  */
 
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
 const CLIENTS_PATH = '/api/workbench/clients'
@@ -34,6 +34,9 @@ const ARTICLES_PATH = '/api/workbench/articles'
 const MCP_INFO_PATH = '/api/workbench/mcp'
 const TASK_META_PATH = '/api/workbench/task-meta'
 const TASK_META_DIR = '/home/dsh/.dsh/workbench-meta'
+const TASK_STATUS_PATH = '/api/workbench/task-status'
+const WORKSPACE_ROOT = '/home/dsh/生文'
+const LIBRARY_ROOT = '/srv/dsh-data/文章库'
 
 /** 默认服务器名；在 cordis.patch.yml 的 config 里可改。 */
 const DEFAULT_KNOWLEDGE_SERVER = 'sora-knowledge'
@@ -411,6 +414,32 @@ export function create(ctx, config) {
         return
       }
       methodNotAllowed(res)
+    }
+
+    /* ---- 任务进程的客观卡点（2026-09-23）--------------------------
+     * 按客户名探测两个位置：工作区目录（产物）与文章库（入库）。
+     * 只报事实：目录是否存在 / 文件数 / 最近 24h 新增数。 */
+    handlers[TASK_STATUS_PATH] = (req, res) => {
+      if (req.method !== 'GET') { methodNotAllowed(res); return }
+      const url = new URL(req.url, 'http://localhost')
+      const client = String(url.searchParams.get('client') ?? '').replace(/[/\\]/g, '')
+      if (!client) { sendJson(res, { ok: false, error: 'no-client' }); return }
+      const dayAgo = Date.now() - 24 * 3600 * 1000
+      function probe(root) {
+        const dir = join(root, client)
+        try {
+          const entries = readdirSync(dir, { withFileTypes: true })
+          const files = entries.filter(e => e.isFile()).map(e => e.name)
+          let recent = 0
+          for (const name of files) {
+            try { if (statSync(join(dir, name)).mtimeMs > dayAgo) recent += 1 } catch { }
+          }
+          return { exists: true, files: files.length, recent }
+        } catch {
+          return { exists: false, files: 0, recent: 0 }
+        }
+      }
+      sendJson(res, { ok: true, workspace: probe(WORKSPACE_ROOT), library: probe(LIBRARY_ROOT) })
     }
 
   return { handlers }
