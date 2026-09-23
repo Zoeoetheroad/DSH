@@ -31,7 +31,20 @@ dsh plugin --profile web add "git+ssh://git@github.com/Zoeoetheroad/DSH.git#path
     # pollMs: 120000            # 后台轮询间隔；0 = 关闭
     # timeoutMs: 10000          # 单次请求超时
     # resourceToken: '<token>'  # 见第四节「附属文件」
+    # modelInvocable: false     # 见第二节之一
 ```
+
+### modelInvocable（默认 `false`）
+
+**技能目录是否进模型上下文。**
+
+我们的使用模式是「**用户在界面上点选技能**」——选谁由人决定，模型不需要自己挑。
+DSH 的行为是：**模型可调用的技能数为 0 时，根本不往上下文里注入技能目录**。
+所以默认关掉，省一份常驻上下文，模型也不会被技能清单干扰。
+
+- 关掉之后：模型看不到技能列表，`/技能名` 手势失效
+- **界面目录不受影响**：走的是另一个开关 `userInvocable`（本插件恒为 `true`），工作台照常列出全部技能
+- 以后要上自动分类器，把它改成 `true` 即可 —— 是可逆开关，不是一次性决定
 
 如果你同时想关掉本地目录发现（让技能只来自远程），在 agent preset 里配：
 
@@ -57,7 +70,7 @@ GET {url}/health                 → 探活（免鉴权）
 
 - 一个技能 = **一个目录**，目录里有 `SKILL.md`（带 YAML frontmatter）+ 任意附属文件
 - `name` 必须是 ASCII kebab-case（模型靠它点名技能）
-- `description` 最重要 —— 模型靠它决定加载哪个技能
+- `description` 的用途取决于调用方式：`modelInvocable: true` 时模型靠它路由；关掉之后它就只是**给界面看的标签**（`whenToUse` 同理，它本来就只喂界面）
 - 除 `/health` 外都要带 token；没有 token 返回 `401`
 
 ## 四、附属文件（重要）

@@ -4,7 +4,14 @@
 // 这个插件补上「从远程 HTTP 服务读」：技能统一存云端，本地不落文件。
 //
 // 配置（挂在宿主层）：
-//   { id: skill-remote, name: 'dsh-skill-remote', config: { url, token } }
+//   { id: skill-remote, name: 'dsh-skill-remote', config: { url, token, modelInvocable } }
+//
+// modelInvocable（默认 false）——技能目录是否进模型上下文：
+//   我们的使用模式是「用户在界面上点选技能」，选谁由人决定，模型不需要自己挑。
+//   模型可调用的技能数为 0 时，DSH 根本不会往上下文里注入技能目录。
+//   所以默认关掉：省一份常驻上下文，模型也不会被技能清单干扰。
+//   注意：关掉之后模型看不到技能列表、`/技能名` 手势失效；以后要上自动分类器时改回 true 即可。
+//   interface（界面目录）走 userInvocable，不受这个开关影响，工作台照常列出全部技能。
 //
 // 服务端接口约定（见 README）：
 //   GET {url}/skills                    → [{ name, description, whenToUse? }]
@@ -27,6 +34,7 @@ const DEFAULTS = {
   cacheTtlMs: 60_000, // 目录缓存时长
   pollMs: 120_000, // 后台轮询间隔；0 = 关闭
   timeoutMs: 10_000, // 单次请求超时
+  modelInvocable: false, // 技能目录不进模型上下文（点选式调用，见文件头说明）
 }
 
 function trimBase(url) {
@@ -41,6 +49,7 @@ export function apply(ctx, config = {}) {
   const cacheTtlMs = Number(config.cacheTtlMs ?? DEFAULTS.cacheTtlMs)
   const pollMs = Number(config.pollMs ?? DEFAULTS.pollMs)
   const timeoutMs = Number(config.timeoutMs ?? DEFAULTS.timeoutMs)
+  const modelInvocable = config.modelInvocable ?? DEFAULTS.modelInvocable
 
   // 附属文件的 base：默认不带 token（消费端自己带鉴权取）；
   // 若给了 resourceToken，则用服务端的路径带 token 形式 —— 相对路径能正常解析。
@@ -106,7 +115,7 @@ export function apply(ctx, config = {}) {
       name: it.name,
       description: String(it.description ?? ''),
       whenToUse: it.whenToUse ? String(it.whenToUse) : undefined,
-      invocation: { modelInvocable: true, userInvocable: true },
+      invocation: { modelInvocable, userInvocable: true },
       source: layer ?? 'remote',
       provider: providerName,
       rank,
