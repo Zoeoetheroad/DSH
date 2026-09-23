@@ -949,11 +949,24 @@ window.__ModuleLoader__.load({
 				}, function () { return null; });
 			});
 
-			/* 会话域的接力挂件 —— 装配台发出去的那句话靠它落地。 */
+			/* 会话域的接力挂件 —— 装配台发出去的那句话靠它落地。
+			 * 挂两个点，因为新会话有两个形态：
+			 *   - conversation.composer.dock：正式会话态才有；
+			 *   - conversation.input.dock：空白态（hero）也渲染。
+			 * 装配台发送 → startSession 打开空白会话 → 先落在空白态 →
+			 * 只有 input.dock 上的挂件在场，由它消费提示词发出第一条消息。
+			 * 消费即清空 pendingPrompt，两个挂件不会双发。 */
 			ctx.slots.inject("conversation.composer.dock", function () {
 				return ctx.slots.register({
 					name: "conversation.composer.dock",
 					id: "workbench-prompt-relay",
+					order: 90,
+				}, PromptRelay);
+			});
+			ctx.slots.inject("conversation.input.dock", function () {
+				return ctx.slots.register({
+					name: "conversation.input.dock",
+					id: "workbench-prompt-relay-hero",
 					order: 90,
 				}, PromptRelay);
 			});
