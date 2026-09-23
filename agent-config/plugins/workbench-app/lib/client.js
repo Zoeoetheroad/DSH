@@ -198,6 +198,17 @@ window.__ModuleLoader__.load({
 			".wb_refX{border:none; background:transparent; color:var(--wb-dim2); padding:0 4px; font-size:14px; line-height:1;}",
 			".wb_refX:hover{color:var(--wb-bad);}",
 
+			/* C1 顶部任务条 */
+			".wb_task{padding:8px 20px 6px;border-bottom:1px solid var(--wb-line-soft);display:flex;flex-direction:column;gap:2px;background:var(--wb-bg);}",
+			".wb_taskRow{display:flex;align-items:baseline;gap:10px;min-width:0;}",
+			".wb_taskRow2{display:flex;gap:12px;font-size:12px;color:var(--wb-dim);min-width:0;overflow:hidden;}",
+			".wb_taskHead{display:inline-flex;gap:6px;align-items:baseline;min-width:0;}",
+			".wb_taskClient{font-weight:600;font-size:13.5px;color:var(--wb-strong);}",
+			".wb_taskDim{color:var(--wb-dim2);font-size:12px;}",
+			".wb_taskTopic{margin-left:auto;font-size:12.5px;color:var(--wb-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}",
+			".wb_taskTitle{font-weight:600;font-size:13.5px;}",
+			".wb_taskSkills,.wb_taskBase{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}",
+
 			/* A5 用模板（skill 没接 → 只有分组和空态） */
 			".wb_skGroup{display:flex; flex-direction:column; gap:6px;}",
 			".wb_skCap{font-size:11px; color:var(--wb-dim2);}",
@@ -467,6 +478,15 @@ window.__ModuleLoader__.load({
 				}
 				var text = pendingPrompt;
 				pendingPrompt = null;
+				/* 把任务参数编号绑定到这个会话 —— C1 任务条按 sessionId 取。
+				 * （多设备/刷新后不跨会话残留。） */
+				try {
+					var pendingId = sessionStorage.getItem("wb-pending-meta") || "";
+					if (pendingId !== "" && typeof props.sessionId === "string" && props.sessionId !== "") {
+						sessionStorage.setItem("wb-meta-for-" + props.sessionId, pendingId);
+						sessionStorage.removeItem("wb-pending-meta");
+					}
+				} catch (error) { /* 无 sessionStorage 就没有任务条，不影响发消息 */ }
 				actions.setDraft(text);
 				actions.submit();
 			};
@@ -484,6 +504,58 @@ window.__ModuleLoader__.load({
 			}, []);
 			return null;
 		}
+
+			/* ---- C1 顶部任务条（2026-09-23）-------------------------------------
+			 * 装配台发起时参数已登记宿主（编号经 sessionStorage 绑到会话），
+			 * 这里读回展示：客户 / 业务线 / 期数 / 主题 / 技能 / 补充要求。
+			 * 没登记过的会话显示标题兜底 —— 槽位是全局替换，不能开天窗。 */
+			function TaskBar(props) {
+				var sessionId = props.sessionId;
+				var useSessions = props.useSessions;
+				var state = React.useState({ status: "idle", meta: null });
+				var meta = state[0].meta, setState = state[1];
+				var title = "";
+				if (typeof useSessions === "function" && sessionId !== undefined && sessionId !== null) {
+					title = useSessions(function (s) {
+						var rec = s && s.byId ? s.byId[sessionId] : null;
+						return rec && typeof rec.displayTitle === "string" ? rec.displayTitle : "";
+					}) || "";
+				}
+				React.useEffect(function () {
+					if (sessionId === undefined || sessionId === null) return;
+					var id = "";
+					try { id = sessionStorage.getItem("wb-meta-for-" + sessionId) || ""; } catch (error) { }
+					if (id === "") { setState({ status: "none", meta: null }); return; }
+					var alive = true;
+					fetch("/api/workbench/task-meta?id=" + encodeURIComponent(id), { headers: { accept: "application/json" } })
+						.then(function (r) { return r.json(); })
+						.then(function (body) {
+							if (!alive) return;
+							if (body && body.ok === true) setState({ status: "ready", meta: body });
+							else setState({ status: "none", meta: null });
+						})
+						.catch(function () { if (alive) setState({ status: "none", meta: null }); });
+					return function () { alive = false; };
+				}, [sessionId]);
+
+				if (meta === null || typeof meta !== "object") {
+					return h("div", { className: "wb_task" },
+						h("span", { className: "wb_taskTitle" }, title === "" ? "会话" : title));
+				}
+				var headBits = [];
+				if (meta.client) headBits.push(h("span", { className: "wb_taskClient", key: "c" }, meta.client));
+				if (meta.line) headBits.push(h("span", { className: "wb_taskDim", key: "l" }, "· " + meta.line));
+				if (meta.period) headBits.push(h("span", { className: "wb_taskDim", key: "p" }, "· " + meta.period));
+				return h("div", { className: "wb_task" },
+					h("div", { className: "wb_taskRow" },
+						h.apply(null, ["span", { className: "wb_taskHead" }].concat(headBits)),
+						meta.topic ? h("span", { className: "wb_taskTopic" }, "主题：" + meta.topic) : null),
+					h("div", { className: "wb_taskRow2" },
+						(meta.skills || []).length > 0 ? h("span", { className: "wb_taskSkills" }, "技能：" + meta.skills.join("、")) : null,
+						(meta.refs && meta.refs.urls && meta.refs.urls.length > 0)
+							? h("span", { className: "wb_taskDim" }, "仿写 " + meta.refs.urls.length + " 篇 · " + (meta.refs.style || "")) : null,
+						meta.base ? h("span", { className: "wb_taskBase" }, "要求：" + meta.base) : null));
+			}
 
 		/* ==================================================================
 		 * 装配台
@@ -654,9 +726,31 @@ window.__ModuleLoader__.load({
 				return "【装配台预填 · 初始上下文】\n" + lines.join("\n");
 			}
 
-			function dispatch() {
+			async function dispatch() {
 				if (clientName === "") return;
-				var text = composePrompt();
+				/* C1 数据源：先把装配参数登记到宿主（POST task-meta）拿编号，
+				 * 编号追加在预填消息尾部 + 记进 sessionStorage —— 会话页顶部
+				 * 的任务条凭编号读回参数。登记失败不挡发送（任务条显示兜底）。 */
+				var metaId = "";
+				setSending("正在登记任务参数…");
+				try {
+					var resp = await fetch("/api/workbench/task-meta", {
+						method: "POST",
+						headers: { "content-type": "application/json", accept: "application/json" },
+						body: JSON.stringify({
+							client: clientName, line: lineName, period: periodName,
+							mode: mode, topic: topic,
+							refs: { urls: refs.urls, body: refs.body, style: refStyle },
+							skills: picked, base: base,
+						}),
+					});
+					var body = await resp.json();
+					if (body && body.ok === true && typeof body.id === "string") metaId = body.id;
+				} catch (error) { /* 登记失败照常发送，任务条走兜底 */ }
+				var text = composePrompt() + (metaId === "" ? "" : "\n\n[任务编号：" + metaId + "]");
+				if (metaId !== "") {
+					try { sessionStorage.setItem("wb-task-meta-id", metaId); } catch (error) { /* 隐身模式就算了 */ }
+				}
 				var workspace = ctx !== undefined && ctx !== null && typeof ctx.get === "function" ? ctx.get("uiWorkspace") : undefined;
 				if (workspace === undefined || workspace === null || typeof workspace.startSession !== "function") {
 					setSending("起不了会话：宿主没有 uiWorkspace");
@@ -979,6 +1073,14 @@ window.__ModuleLoader__.load({
 			 * 产品形态：使用者只写文章，不做任何配置。`sidebar.settings` 是
 			 * single 槽 —— 注册空组件即整体替换官方设置按钮。设置弹窗随之
 			 * 永远打不开（模型由管理员在服务器后台配置，域名访问本就锁着）。 */
+			/* C1 顶部任务条：替换会话头部（single 槽）。 */
+			ctx.slots.inject("conversation.session.header", function () {
+				return ctx.slots.register({
+					name: "conversation.session.header",
+					id: "workbench-task-bar",
+				}, TaskBar);
+			});
+
 			ctx.slots.inject("sidebar.settings", function () {
 				return ctx.slots.register({
 					name: "sidebar.settings",

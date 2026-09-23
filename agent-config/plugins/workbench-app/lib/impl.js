@@ -25,10 +25,15 @@
  *   GET /api/workbench/mcp                  → 诊断：这台 Host 挂了哪些 MCP、各有哪些工具
  */
 
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+
 const CLIENTS_PATH = '/api/workbench/clients'
 const SKILLS_PATH = '/api/workbench/skills'
 const ARTICLES_PATH = '/api/workbench/articles'
 const MCP_INFO_PATH = '/api/workbench/mcp'
+const TASK_META_PATH = '/api/workbench/task-meta'
+const TASK_META_DIR = '/home/dsh/.dsh/workbench-meta'
 
 /** 默认服务器名；在 cordis.patch.yml 的 config 里可改。 */
 const DEFAULT_KNOWLEDGE_SERVER = 'sora-knowledge'
@@ -366,6 +371,46 @@ export function create(ctx, config) {
           detail: String(error && error.message ? error.message : error),
         })
       }
+    }
+
+    /* ---- 任务参数存取（C1 顶部任务条的数据源，2026-09-23）------------
+     * 装配台发起时 POST 一份装配参数，拿到 id；预填消息尾部带 [任务编号：id]，
+     * 会话页顶部的任务条凭 id 读回参数展示。存 /home/dsh/.dsh/workbench-meta/
+     * （不在工作区内容里，agent 碰不到 —— 它没有文件工具）。 */
+    handlers[TASK_META_PATH] = async (req, res) => {
+      if (req.method === 'POST') {
+        let body = ''
+        req.on('data', chunk => { body += chunk })
+        await new Promise(resolve => req.on('end', resolve))
+        let parsed
+        try { parsed = JSON.parse(body || '{}') } catch { parsed = {} }
+        const id = 'wbtm-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6)
+        try {
+          mkdirSync(TASK_META_DIR, { recursive: true })
+          writeFileSync(
+            join(TASK_META_DIR, id + '.json'),
+            JSON.stringify({ ...parsed, savedAt: new Date().toISOString() }, null, 2),
+          )
+          sendJson(res, { ok: true, id })
+        } catch (error) {
+          sendJson(res, { ok: false, error: 'save-failed', detail: String(error && error.message ? error.message : error) })
+        }
+        return
+      }
+      if (req.method === 'GET') {
+        const url = new URL(req.url, 'http://localhost')
+        const id = String(url.searchParams.get('id') ?? '')
+        if (!/^wbtm-[a-z0-9-]+$/.test(id)) { sendJson(res, { ok: false, error: 'bad-id' }); return }
+        try {
+          const raw = readFileSync(join(TASK_META_DIR, id + '.json'), 'utf8')
+          res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' })
+          res.end(raw)
+        } catch {
+          sendJson(res, { ok: false, error: 'not-found' })
+        }
+        return
+      }
+      methodNotAllowed(res)
     }
 
   return { handlers }
