@@ -528,7 +528,10 @@ window.__ModuleLoader__.load({
 				if (typeof useChat === "function" && sessionId !== undefined && sessionId !== null) {
 					metaId = useChat(function (snapshot) {
 						var nodes = snapshot && snapshot.legacy && snapshot.legacy.nodes;
-						var list = Array.isArray(nodes) ? nodes : (nodes !== null && typeof nodes === "object" ? Object.keys(nodes).map(function (k) { return nodes[k]; }) : []);
+						var list = [];
+						if (Array.isArray(nodes)) list = nodes;
+						else if (nodes && typeof nodes.forEach === "function") nodes.forEach(function (v) { list.push(v); });
+						else if (nodes !== null && typeof nodes === "object") list = Object.keys(nodes).map(function (k) { return nodes[k]; });
 						for (var i = 0; i < list.length; i++) {
 							var node = list[i];
 							if (node && node.kind === "user" && node.data && Array.isArray(node.data.content)) {
@@ -743,7 +746,8 @@ window.__ModuleLoader__.load({
 
 				if (base.trim() !== "") step("补充要求：" + base.trim());
 
-				return "【装配台预填 · 初始上下文】\n" + lines.join("\n");
+				lines.splice(0, 0, "工具分工（请严格照此使用，不要猜）：客户知识库、文章的读写都走 MCP 工具（mcp__sora-knowledge__*、mcp__sora-articles__*）；只有下面列出的 sora-* 写作技能才走技能工具（skill），其他名字不是技能。新文章用文章库的 write_article 写入。");
+				return "【装配台预填 · 初始上下文】\n" + lines.map(function (line, i) { return (i === 0 ? "" : (i) + ". ") + line; }).join("\n");
 			}
 
 			async function dispatch() {
