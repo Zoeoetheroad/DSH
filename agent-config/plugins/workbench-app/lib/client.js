@@ -1074,10 +1074,13 @@ window.__ModuleLoader__.load({
 			 * single 槽 —— 注册空组件即整体替换官方设置按钮。设置弹窗随之
 			 * 永远打不开（模型由管理员在服务器后台配置，域名访问本就锁着）。 */
 			/* C1 顶部任务条：替换会话头部（single 槽）。 */
+			/* header 槽官方已占 priority 0 —— 显式用 -1（更低者渲染）遮蔽它，
+			 * 否则官方插件 apply 时撞车报错（9-23 实测）。 */
 			ctx.slots.inject("conversation.session.header", function () {
 				return ctx.slots.register({
 					name: "conversation.session.header",
 					id: "workbench-task-bar",
+					priority: -1,
 				}, TaskBar);
 			});
 
