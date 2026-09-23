@@ -751,7 +751,8 @@ window.__ModuleLoader__.load({
 				if (base.trim() !== "") step("补充要求：" + base.trim());
 
 				lines.splice(0, 0, "工具分工（请严格照此使用，不要猜）：客户知识库、文章的读写都走 MCP 工具（mcp__sora-knowledge__*、mcp__sora-articles__*）；只有下面列出的 sora-* 写作技能才走技能工具（skill），其他名字不是技能。新文章用文章库的 write_article 写入。");
-				return "【装配台预填 · 初始上下文】\n" + lines.map(function (line, i) { return (i === 0 ? "" : (i) + ". ") + line; }).join("\n");
+				/* lines 里各条已自带序号（step 加的），这里直接拼，别再加一遍（9-23 实测出现 1.1.）。 */
+				return "【装配台预填 · 初始上下文】\n" + lines.join("\n");
 			}
 
 			async function dispatch() {
