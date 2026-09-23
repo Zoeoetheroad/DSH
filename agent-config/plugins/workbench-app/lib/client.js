@@ -618,24 +618,40 @@ window.__ModuleLoader__.load({
 
 			/* 拼提示词：只写用户真的选了的，没选的不编。 */
 			function composePrompt() {
-				var parts = [];
-				var who = "给 " + (clientName || "（没选客户）");
-				if (lineName !== "") who += " › " + lineName;
-				if (periodName !== "") who += " › " + periodName;
-				parts.push(who + " 写。");
-				if (mode === "free" && topic.trim() !== "") parts.push("主题：" + topic.trim());
-				if (mode === "weak") parts.push("主题：薄弱问句库（还没接，未选）。");
-				var how = [];
+				/* 预填规则（2026-09-23 用户定的粗糙版）：装配台内容从上到下罗列成
+				 * 指令式初始上下文，直接可见不隐藏，每条写明"走什么工具"。
+				 * 拼装顺序/措辞/隐藏式注入，等整体功能通了再细调。 */
+				var lines = [];
+				var n = 0;
+				function step(text) { n += 1; lines.push(n + ". " + text); }
+
+				var who = "客户：" + (clientName || "（没选客户）");
+				if (lineName !== "") who += " · 业务线：" + lineName;
+				if (periodName !== "") who += " · 期数：" + periodName;
+				step(who + " —— 请调用知识库工具（sora-knowledge），读取该客户的全部知识库内容再动笔。");
+
+				if (mode === "weak") {
+					step("主题：从薄弱问句里选（薄弱问句库还没接数据 —— 先按知识库内容自行判断主题，或等我补充）。");
+				} else if (topic.trim() !== "") {
+					step("主题：" + topic.trim());
+				}
+
 				if (refCount > 0) {
 					var bits = [];
-					if (refs.urls.length > 0) bits.push(refs.urls.length + " 个链接");
-					if (refs.body.trim() !== "") bits.push("正文 " + refs.body.replace(/\s/g, "").length + " 字");
-					how.push("仿写：" + bits.join(" + ") + " · " + refStyle);
+					if (refs.urls.length > 0) bits.push("链接：" + refs.urls.join("、"));
+					if (refs.body.trim() !== "") bits.push("正文材料：「" + refs.body.trim() + "」");
+					step("怎么写：仿写，" + refStyle + "。参考材料 —— " + bits.join("；"));
 				}
-				if (picked.length > 0) how.push("技能：" + picked.join("、"));
-				if (how.length > 0) parts.push("怎么写：" + how.join("｜"));
-				if (base.trim() !== "") parts.push("补充要求：" + base.trim());
-				return parts.join("\n");
+
+				if (picked.length > 0) {
+					picked.forEach(function (name) {
+						step("技能：" + name + " —— 请通过技能工具（skill provider）调用这个 skill，按它的规则写。");
+					});
+				}
+
+				if (base.trim() !== "") step("补充要求：" + base.trim());
+
+				return "【装配台预填 · 初始上下文】\n" + lines.join("\n");
 			}
 
 			function dispatch() {
