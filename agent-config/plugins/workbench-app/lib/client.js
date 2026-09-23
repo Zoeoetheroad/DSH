@@ -512,6 +512,7 @@ window.__ModuleLoader__.load({
 			function TaskBar(props) {
 				var sessionId = props.sessionId;
 				var useSessions = props.useSessions;
+				var useChat = props.useChat;
 				var state = React.useState({ status: "idle", meta: null });
 				var meta = state[0].meta, setState = state[1];
 				var title = "";
@@ -521,13 +522,32 @@ window.__ModuleLoader__.load({
 						return rec && typeof rec.displayTitle === "string" ? rec.displayTitle : "";
 					}) || "";
 				}
+				/* 任务编号直接从会话首条 user 消息解析 —— 预填固定带 [任务编号：…]，跨设备也稳。
+				 * user 节点结构（官方 promptText 同款）：node.data.content[].type==="text" → .text */
+				var metaId = "";
+				if (typeof useChat === "function" && sessionId !== undefined && sessionId !== null) {
+					metaId = useChat(function (snapshot) {
+						var nodes = snapshot && snapshot.legacy && snapshot.legacy.nodes;
+						var list = Array.isArray(nodes) ? nodes : (nodes !== null && typeof nodes === "object" ? Object.keys(nodes).map(function (k) { return nodes[k]; }) : []);
+						for (var i = 0; i < list.length; i++) {
+							var node = list[i];
+							if (node && node.kind === "user" && node.data && Array.isArray(node.data.content)) {
+								var firstUser = node.data.content
+									.filter(function (block) { return block && block.type === "text" && typeof block.text === "string"; })
+									.map(function (block) { return block.text; })
+									.join("");
+								var match = firstUser.match(/[【\[]任务编号[：:]([a-z0-9-]+)[\]】]/);
+								return match ? match[1] : "";
+							}
+						}
+						return "";
+					}) || "";
+				}
 				React.useEffect(function () {
 					if (sessionId === undefined || sessionId === null) return;
-					var id = "";
-					try { id = sessionStorage.getItem("wb-meta-for-" + sessionId) || ""; } catch (error) { }
-					if (id === "") { setState({ status: "none", meta: null }); return; }
+					if (metaId === "") { setState({ status: "none", meta: null }); return; }
 					var alive = true;
-					fetch("/api/workbench/task-meta?id=" + encodeURIComponent(id), { headers: { accept: "application/json" } })
+					fetch("/api/workbench/task-meta?id=" + encodeURIComponent(metaId), { headers: { accept: "application/json" } })
 						.then(function (r) { return r.json(); })
 						.then(function (body) {
 							if (!alive) return;
@@ -536,7 +556,7 @@ window.__ModuleLoader__.load({
 						})
 						.catch(function () { if (alive) setState({ status: "none", meta: null }); });
 					return function () { alive = false; };
-				}, [sessionId]);
+				}, [sessionId, metaId]);
 
 				if (meta === null || typeof meta !== "object") {
 					return h("div", { className: "wb_task" },
