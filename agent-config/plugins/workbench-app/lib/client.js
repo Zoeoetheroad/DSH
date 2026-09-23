@@ -919,19 +919,15 @@ window.__ModuleLoader__.load({
 				}; }, "dsh-workbench: remove the workbench stylesheet");
 			}
 
-			ctx.slots.inject("main", function () {
-				return ctx.slots.register({ name: "main", key: WORKBENCH_KEY }, function () {
-					return h(WorkbenchPage, { ctx: ctx });
-				});
-			});
-			ctx.slots.inject("sidebar.panellist", function () {
-				return ctx.slots.register({
-					name: "sidebar.panellist",
-					id: WORKBENCH_KEY,
-					label: "工作台",
-					order: 20,
-				}, WorkbenchIcon);
-			});
+			/* ---- 面板入口（2026-09-23 撤）------------------------------------
+			 * 用户决定：装配台最终应该长在「新会话」的流程里，而不是一个
+			 * 独立面板。接入新会话之前先把独立入口全部撤掉：
+			 *   - main 面板注册（key=workbench）
+			 *   - sidebar.panellist 的「工作台」一行
+			 *   - 进来就跳 workbench 的 selectPanel
+			 * WorkbenchPage 组件本体保留在文件里，接入新会话时复用。
+			 * PromptRelay 接力挂件留着（无 pendingPrompt 时是空转，无害）。 */
+
 			/* 会话域的接力挂件 —— 装配台发出去的那句话靠它落地。 */
 			ctx.slots.inject("conversation.composer.dock", function () {
 				return ctx.slots.register({
@@ -940,21 +936,6 @@ window.__ModuleLoader__.load({
 					order: 90,
 				}, PromptRelay);
 			});
-
-			/* 进来就落在工作台。布局自己的初始选择在我们后面才落定，所以延后。 */
-			var defaultPanel = (config !== null && typeof config === "object"
-				&& typeof config.defaultPanel === "string") ? config.defaultPanel : WORKBENCH_KEY;
-			if (defaultPanel !== "") {
-				var select = function () {
-					try {
-						ctx.layout.selectPanel(defaultPanel);
-					} catch (error) {
-						console.log("[dsh-workbench] 没落到默认面板：", String(error && error.message ? error.message : error));
-					}
-				};
-				setTimeout(select, 250);
-				setTimeout(select, 900);
-			}
 		}
 
 		exports.inject = ["slots", "layout"];
