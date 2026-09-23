@@ -98,15 +98,20 @@ export function apply(ctx, config = {}) {
   }
 
   function toCandidate(it) {
+    // 技能来自哪一层（公共 / 中间层 / 个人）。服务端返回 layer；没有就退回 'remote'。
+    // 放进 source：它是「来源桶」，是 SkillSummary 上唯一能带自定义字符串的字段，
+    // 消费端（工作台等）可以据此分层展示。
+    const layer = it.layer ? String(it.layer) : null
     return {
       name: it.name,
       description: String(it.description ?? ''),
       whenToUse: it.whenToUse ? String(it.whenToUse) : undefined,
       invocation: { modelInvocable: true, userInvocable: true },
-      source: 'remote',
+      source: layer ?? 'remote',
       provider: providerName,
       rank,
       locator: { name: it.name },
+      ...(layer ? { metadata: { layer } } : {}),
       resourceBase: { kind: 'url', url: `${resourceRoot}/${it.name}` },
     }
   }
