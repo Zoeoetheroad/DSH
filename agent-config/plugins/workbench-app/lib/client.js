@@ -858,25 +858,46 @@ window.__ModuleLoader__.load({
 											? h("div", { className: "wb_skEmpty" }, "技能目录读取中…")
 											: skills.skills.length === 0
 												? h("div", { className: "wb_skEmpty" }, "技能服务是空的 —— 一个 skill 都没注册")
-												: h("div", { className: "wb_skGroup" },
-													h("div", { className: "wb_skCap" },
-														"可用技能 · " + skills.skills.length + " 个"
-														+ (skills.skills[0].provider === "" ? "" : "（" + skills.skills[0].provider + "）")),
-													h("div", { style: { display: "flex", flexWrap: "wrap", gap: "6px" } },
-														skills.skills.map(function (skill) {
-															var on = picked.indexOf(skill.name) >= 0;
-															return h("button", {
-																type: "button", key: skill.name,
-																className: "wb_chipBtn", "data-on": on ? "1" : "0",
-																title: skill.description + (skill.whenToUse === "" ? "" : "\n" + skill.whenToUse),
-																onClick: function () {
-																	setPicked(on
-																		? picked.filter(function (n) { return n !== skill.name; })
-																		: picked.concat([skill.name]));
-																	setChipOff(false);
-																},
-															}, (on ? "✓ " : "") + skill.name);
-														}))))) : null),
+										: (function () {
+											/* 技能三层（2026-09-23，配合 skill-remote 分层）：个人层 → 个人中间层 → 公共层，
+											 没带层的归「其他」。顺序按使用频率排：自己的最常用，放最前。 */
+											var LAYER_ORDER = ["personal", "middle", "public"];
+											var LAYER_LABELS = { "personal": "个人层", "middle": "个人中间层", "public": "公共层" };
+											function normalizeLayer(raw) {
+												if (raw === "personal" || raw === "个人") return "personal";
+												if (raw === "middle" || raw === "_middle" || raw.indexOf("中") >= 0) return "middle";
+												if (raw === "public" || raw === "公共") return "public";
+												return "other";
+											}
+																						var buckets = { other: [] };
+											LAYER_ORDER.forEach(function (key) { buckets[key] = []; });
+											skills.skills.forEach(function (skill) {
+												var key = normalizeLayer(skill.layer);
+												buckets[key].push(skill);
+											});
+											return h("div", { style: { display: "flex", flexDirection: "column", gap: "10px" } },
+												LAYER_ORDER.concat(["other"]).filter(function (key) { return buckets[key].length > 0; })
+													.map(function (key) {
+														return h("div", { className: "wb_skGroup", key: key },
+															h("div", { className: "wb_skCap" },
+																(LAYER_LABELS[key] || "其他技能") + " · " + buckets[key].length + " 个"),
+															h("div", { style: { display: "flex", flexWrap: "wrap", gap: "6px" } },
+																buckets[key].map(function (skill) {
+																	var on = picked.indexOf(skill.name) >= 0;
+																	return h("button", {
+																		type: "button", key: skill.name,
+																		className: "wb_chipBtn", "data-on": on ? "1" : "0",
+																		title: skill.description + (skill.whenToUse === "" ? "" : "\n" + skill.whenToUse),
+																		onClick: function () {
+																			setPicked(on
+																				? picked.filter(function (n) { return n !== skill.name; })
+																				: picked.concat([skill.name]));
+																			setChipOff(false);
+																		},
+																	}, (on ? "✓ " : "") + skill.name);
+																})));
+													}));
+										}()))) : null),
 
 					/* ---- A6 底座 + A7 放大 ---- */
 					h("div", { className: "wb_base", "data-zoom": zoom ? "1" : "0" },

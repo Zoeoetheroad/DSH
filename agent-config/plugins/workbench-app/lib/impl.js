@@ -341,13 +341,23 @@ export function create(ctx, config) {
         const summaries = await hostCtx.skills.list({ cwd: process.cwd(), signal: AbortSignal.timeout(TOOL_TIMEOUT_MS) })
         sendJson(res, {
           ok: true,
-          skills: summaries.map(summary => ({
-            name: String(summary.name ?? ''),
-            description: String(summary.description ?? ''),
-            whenToUse: typeof summary.whenToUse === 'string' ? summary.whenToUse : '',
-            provider: String(summary.provider ?? ''),
-            modelInvocable: summary.invocation === undefined ? true : summary.invocation.modelInvocable === true,
-          })).filter(skill => skill.name !== ''),
+          skills: summaries.map(summary => {
+            /* 技能分层（2026-09-23，配合 dsh-skill-remote f4d25a3）：
+             * 服务端按「公共 / 中间层 / 个人」三层存技能，provider 把 layer
+             * 放进 metadata.layer（source 也带）。取不到就空串，前端归「其他」。 */
+            const metaLayer = summary.metadata !== null && typeof summary.metadata === 'object'
+              && typeof summary.metadata.layer === 'string' ? summary.metadata.layer : ''
+            const layer = metaLayer !== '' ? metaLayer
+              : (typeof summary.source === 'string' && summary.source !== 'remote' ? summary.source : '')
+            return {
+              name: String(summary.name ?? ''),
+              description: String(summary.description ?? ''),
+              whenToUse: typeof summary.whenToUse === 'string' ? summary.whenToUse : '',
+              provider: String(summary.provider ?? ''),
+              layer,
+              modelInvocable: summary.invocation === undefined ? true : summary.invocation.modelInvocable === true,
+            }
+          }).filter(skill => skill.name !== ''),
         })
       } catch (error) {
         sendJson(res, {
