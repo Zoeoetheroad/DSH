@@ -25,8 +25,8 @@
  *   GET /api/workbench/mcp                  → 诊断：这台 Host 挂了哪些 MCP、各有哪些工具
  */
 
-import { mkdirSync, readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, existsSync, renameSync } from 'node:fs'
+import { join, dirname } from 'node:path'
 
 const CLIENTS_PATH = '/api/workbench/clients'
 const SKILLS_PATH = '/api/workbench/skills'
@@ -35,6 +35,9 @@ const MCP_INFO_PATH = '/api/workbench/mcp'
 const TASK_META_PATH = '/api/workbench/task-meta'
 const TASK_META_DIR = '/home/dsh/.dsh/workbench-meta'
 const TASK_STATUS_PATH = '/api/workbench/task-status'
+const DRAFTS_PATH = '/api/workbench/drafts'
+const DRAFT_PATH = '/api/workbench/draft'
+const CONFIRM_DRAFT_PATH = '/api/workbench/confirm-draft'
 const WORKSPACE_ROOT = '/home/dsh/生文'
 const LIBRARY_ROOT = '/srv/dsh-data/文章库'
 
@@ -424,7 +427,11 @@ export function create(ctx, config) {
       const url = new URL(req.url, 'http://localhost')
       const client = String(url.searchParams.get('client') ?? '').replace(/[/\\]/g, '')
       if (!client) { sendJson(res, { ok: false, error: 'no-client' }); return }
-      const dayAgo = Date.now() - 24 * 3600 * 1000
+      /* 2026-09-24：卡点按「本任务」算 —— since = 任务发起时刻（meta.savedAt）。
+       * 不传 since 才退回 24h 窗口。上一单的入库不再冒充本任务的进度。 */
+      const sinceRaw = url.searchParams.get('since') ?? ''
+      const sinceParsed = Date.parse(sinceRaw)
+      const since = Number.isFinite(sinceParsed) && sinceParsed > 0 ? sinceParsed : Date.now() - 24 * 3600 * 1000
       function probe(root) {
         const dir = join(root, client)
         try {
@@ -432,7 +439,7 @@ export function create(ctx, config) {
           const files = entries.filter(e => e.isFile()).map(e => e.name)
           let recent = 0
           for (const name of files) {
-            try { if (statSync(join(dir, name)).mtimeMs > dayAgo) recent += 1 } catch { }
+            try { if (statSync(join(dir, name)).mtimeMs > since) recent += 1 } catch { }
           }
           return { exists: true, files: files.length, recent }
         } catch {
@@ -440,6 +447,61 @@ export function create(ctx, config) {
         }
       }
       sendJson(res, { ok: true, workspace: probe(WORKSPACE_ROOT), library: probe(LIBRARY_ROOT) })
+    }
+
+    /* ---- 草稿区（2026-09-24）：write(draft:true) 落「文章库/<客户>/草稿/」，
+     * 人在工作台预览 → 确认 → 宿主把文件挪到正式位置（rename，查重幂等）。
+     * 卷共享，入库动作不经过 MCP 容器。 */
+    const draftDir = client => join(LIBRARY_ROOT, String(client).replace(/[/\\]/g, ''), '草稿')
+    const safeFile = name => {
+      const s = String(name ?? '')
+      if (!s || s.includes('/') || s.includes('\\') || s.includes('..')) throw new Error('bad file name')
+      return s.endsWith('.md') ? s : s + '.md'
+    }
+    handlers[DRAFTS_PATH] = (req, res) => {
+      if (req.method !== 'GET') { methodNotAllowed(res); return }
+      const url = new URL(req.url, 'http://localhost')
+      const client = String(url.searchParams.get('client') ?? '').replace(/[/\\]/g, '')
+      if (!client) { sendJson(res, { ok: false, error: 'no-client' }); return }
+      try {
+        const dir = draftDir(client)
+        const out = []
+        for (const name of readdirSync(dir)) {
+          if (!name.toLowerCase().endsWith('.md')) continue
+          const st = statSync(join(dir, name))
+          out.push({ title: name.replace(/\.md$/i, ''), chars: st.size, updatedAt: new Date(st.mtimeMs).toISOString() })
+        }
+        out.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+        sendJson(res, { ok: true, drafts: out })
+      } catch { sendJson(res, { ok: true, drafts: [] }) }
+    }
+    handlers[DRAFT_PATH] = (req, res) => {
+      if (req.method !== 'GET') { methodNotAllowed(res); return }
+      const url = new URL(req.url, 'http://localhost')
+      const client = String(url.searchParams.get('client') ?? '').replace(/[/\\]/g, '')
+      try {
+        const file = safeFile(url.searchParams.get('title'))
+        const text = readFileSync(join(draftDir(client), file), 'utf8')
+        res.writeHead(200, { 'content-type': 'text/markdown; charset=utf-8', 'cache-control': 'no-store' })
+        res.end(text)
+      } catch { sendJson(res, { ok: false, error: 'not-found' }, 404) }
+    }
+    handlers[CONFIRM_DRAFT_PATH] = (req, res) => {
+      if (req.method !== 'POST') { methodNotAllowed(res); return }
+      let body = ''
+      req.on('data', c => { body += c; if (body.length > 1e6) req.destroy() })
+      req.on('end', () => {
+        try {
+          const { client, title } = JSON.parse(body || '{}')
+          const src = join(draftDir(client), safeFile(title))
+          const dst = join(LIBRARY_ROOT, String(client).replace(/[/\\]/g, ''), safeFile(title))
+          if (!existsSync(src)) { sendJson(res, { ok: false, error: 'draft-missing' }, 404); return }
+          if (existsSync(dst)) { sendJson(res, { ok: false, error: 'already-exists', detail: '正式库已有同名文章，未覆盖' }, 409); return }
+          mkdirSync(dirname(dst), { recursive: true })
+          renameSync(src, dst)
+          sendJson(res, { ok: true, movedTo: dst })
+        } catch (e) { sendJson(res, { ok: false, error: 'confirm-failed', detail: String(e && e.message ? e.message : e) }, 500) }
+      })
     }
 
   return { handlers }
